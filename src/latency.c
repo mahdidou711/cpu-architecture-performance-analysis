@@ -55,7 +55,7 @@ __attribute__((noinline)) static int int_div_4(long n)
 __attribute__((noinline)) static int int_empty_1(long n)
 {
   uint32_t x0=123456789u, y=1;
-  __asm__ volatile("1: mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; dec %[n]; jnz 1b"
+  __asm__ volatile("1: dec %[n]; jnz 1b"
     : [x0] "+&r"(x0), [n] "+&r"(n)
     : [y] "r"(y) : "cc", "eax", "edx");
   return x0==123456789u;
@@ -63,7 +63,7 @@ __attribute__((noinline)) static int int_empty_1(long n)
 __attribute__((noinline)) static int int_empty_4(long n)
 {
   uint32_t x0=123456789u, x1=123456789u, x2=123456789u, x3=123456789u, y=1;
-  __asm__ volatile("1: mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x1], %%eax; xor %%edx, %%edx; mov %%eax, %[x1]; mov %[x2], %%eax; xor %%edx, %%edx; mov %%eax, %[x2]; mov %[x3], %%eax; xor %%edx, %%edx; mov %%eax, %[x3]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x1], %%eax; xor %%edx, %%edx; mov %%eax, %[x1]; mov %[x2], %%eax; xor %%edx, %%edx; mov %%eax, %[x2]; mov %[x3], %%eax; xor %%edx, %%edx; mov %%eax, %[x3]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x1], %%eax; xor %%edx, %%edx; mov %%eax, %[x1]; mov %[x2], %%eax; xor %%edx, %%edx; mov %%eax, %[x2]; mov %[x3], %%eax; xor %%edx, %%edx; mov %%eax, %[x3]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x1], %%eax; xor %%edx, %%edx; mov %%eax, %[x1]; mov %[x2], %%eax; xor %%edx, %%edx; mov %%eax, %[x2]; mov %[x3], %%eax; xor %%edx, %%edx; mov %%eax, %[x3]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x1], %%eax; xor %%edx, %%edx; mov %%eax, %[x1]; mov %[x2], %%eax; xor %%edx, %%edx; mov %%eax, %[x2]; mov %[x3], %%eax; xor %%edx, %%edx; mov %%eax, %[x3]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x1], %%eax; xor %%edx, %%edx; mov %%eax, %[x1]; mov %[x2], %%eax; xor %%edx, %%edx; mov %%eax, %[x2]; mov %[x3], %%eax; xor %%edx, %%edx; mov %%eax, %[x3]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x1], %%eax; xor %%edx, %%edx; mov %%eax, %[x1]; mov %[x2], %%eax; xor %%edx, %%edx; mov %%eax, %[x2]; mov %[x3], %%eax; xor %%edx, %%edx; mov %%eax, %[x3]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x1], %%eax; xor %%edx, %%edx; mov %%eax, %[x1]; mov %[x2], %%eax; xor %%edx, %%edx; mov %%eax, %[x2]; mov %[x3], %%eax; xor %%edx, %%edx; mov %%eax, %[x3]; dec %[n]; jnz 1b"
+  __asm__ volatile("1: dec %[n]; jnz 1b"
     : [x0] "+&r"(x0), [x1] "+&r"(x1), [x2] "+&r"(x2), [x3] "+&r"(x3), [n] "+&r"(n)
     : [y] "r"(y) : "cc", "eax", "edx");
   return x0==123456789u && x1==123456789u && x2==123456789u && x3==123456789u;
@@ -132,6 +132,24 @@ __attribute__((noinline)) static int float_empty_4(long n)
     : [y] "x"(y) : "cc");
   return x0==1.0f && x1==1.0f && x2==1.0f && x3==1.0f;
 }
+__attribute__((noinline)) static int int_divempty_1(long n)
+{
+  uint32_t x0=123456789u, y=1;
+  __asm__ volatile("1: mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; dec %[n]; jnz 1b"
+    : [x0] "+&r"(x0), [n] "+&r"(n)
+    : [y] "r"(y) : "cc", "eax", "edx");
+  return x0==123456789u;
+}
+
+__attribute__((noinline)) static int int_divempty_4(long n)
+{
+  uint32_t x0=123456789u, x1=123456789u, x2=123456789u, x3=123456789u, y=1;
+  __asm__ volatile("1: mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x1], %%eax; xor %%edx, %%edx; mov %%eax, %[x1]; mov %[x2], %%eax; xor %%edx, %%edx; mov %%eax, %[x2]; mov %[x3], %%eax; xor %%edx, %%edx; mov %%eax, %[x3]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x1], %%eax; xor %%edx, %%edx; mov %%eax, %[x1]; mov %[x2], %%eax; xor %%edx, %%edx; mov %%eax, %[x2]; mov %[x3], %%eax; xor %%edx, %%edx; mov %%eax, %[x3]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x1], %%eax; xor %%edx, %%edx; mov %%eax, %[x1]; mov %[x2], %%eax; xor %%edx, %%edx; mov %%eax, %[x2]; mov %[x3], %%eax; xor %%edx, %%edx; mov %%eax, %[x3]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x1], %%eax; xor %%edx, %%edx; mov %%eax, %[x1]; mov %[x2], %%eax; xor %%edx, %%edx; mov %%eax, %[x2]; mov %[x3], %%eax; xor %%edx, %%edx; mov %%eax, %[x3]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x1], %%eax; xor %%edx, %%edx; mov %%eax, %[x1]; mov %[x2], %%eax; xor %%edx, %%edx; mov %%eax, %[x2]; mov %[x3], %%eax; xor %%edx, %%edx; mov %%eax, %[x3]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x1], %%eax; xor %%edx, %%edx; mov %%eax, %[x1]; mov %[x2], %%eax; xor %%edx, %%edx; mov %%eax, %[x2]; mov %[x3], %%eax; xor %%edx, %%edx; mov %%eax, %[x3]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x1], %%eax; xor %%edx, %%edx; mov %%eax, %[x1]; mov %[x2], %%eax; xor %%edx, %%edx; mov %%eax, %[x2]; mov %[x3], %%eax; xor %%edx, %%edx; mov %%eax, %[x3]; mov %[x0], %%eax; xor %%edx, %%edx; mov %%eax, %[x0]; mov %[x1], %%eax; xor %%edx, %%edx; mov %%eax, %[x1]; mov %[x2], %%eax; xor %%edx, %%edx; mov %%eax, %[x2]; mov %[x3], %%eax; xor %%edx, %%edx; mov %%eax, %[x3]; dec %[n]; jnz 1b"
+    : [x0] "+&r"(x0), [x1] "+&r"(x1), [x2] "+&r"(x2), [x3] "+&r"(x3), [n] "+&r"(n)
+    : [y] "r"(y) : "cc", "eax", "edx");
+  return x0==123456789u && x1==123456789u && x2==123456789u && x3==123456789u;
+}
+
 int main(int argc,char **argv)
 {
   if(argc!=3 || !tsc_supported()) return 2;
@@ -154,6 +172,8 @@ int main(int argc,char **argv)
   if(!strcmp(argv[1],"float_div_4")) fn=float_div_4;
   if(!strcmp(argv[1],"float_empty_1")) fn=float_empty_1;
   if(!strcmp(argv[1],"float_empty_4")) fn=float_empty_4;
+  if(!strcmp(argv[1],"int_divempty_1")) fn=int_divempty_1;
+  if(!strcmp(argv[1],"int_divempty_4")) fn=int_divempty_4;
   if(!fn) return 2;
   unsigned tag;
   uint64_t warm=read_timer(&tag);
