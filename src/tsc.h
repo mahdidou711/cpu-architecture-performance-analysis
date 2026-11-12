@@ -1,164 +1,37 @@
-// Pour mesurer les performances d'un pentium
-
-// Suivant la machine, le temps de mesure peut varier.
-// Utiliser la fonction eval_tsc_cycles() pour avoir une mesure un peu plus fine
-#include <x86intrin.h>
-
-#define TSCCYCLES 0.0  // si correction systématique nécessaire
-
-/*
-Le fichier fournit les fonctions start_timer(), stop_timer() et dtime().
-
-Start/stop_timer utilisent l'instruction rdtsc pour obtenir le compteur de temps.
-La macro USE_RDTSC_INTRINSIC définit si on utilise l'intrisic de gcc __rdtsc() ou du code assembleur.
-La première solution est plus standard, mais __rdtsc() ramène toutes les mesure à une fréquence moyenne
-de processeur. Si le processeur a des variations de fréquence importante (par exemple un portable) 
-les résultats seront peu reproductibles. Si USE_RDTSC_INTRINSIC n'est pas définit, on utilise du code assembleur.
-Dans tous les cas un long long est renvoyé.
-Details sur TSC https://forums.guru3d.com/threads/a-bit-detailed-info-on-intel-time-stamp-counter-tsc.433977/
-
-dtime prend en paramètre deux temps long long, applique la correction éventuelle TSCCYCLES (depend du processeur), 
-et convertit en double la différence.
-*/
-
-//#define USE_RDTSC_INTRINSIC
-
-// suivant l'architecture, le nombre de registres touchés par rdtsc varie
-#ifdef __i386__
-#  define RDTSC_DIRTY "%eax", "%ebx", "%ecx", "%edx"
-#elif __x86_64__
-#  define RDTSC_DIRTY "%rax", "%rbx", "%rcx", "%rdx"
-#else
-# error unknown platform
+#ifndef TP1_TSC_H
+#define TP1_TSC_H
+#include <stdint.h>
+#include <cpuid.h>
+#if !defined(__x86_64__) && !defined(__i386__)
+#error "This timer requires x86 with SSE2 and RDTSCP"
 #endif
 
-
-static inline unsigned long long start_timer() 
-{ 
-#if ! defined(USE_RDTSC_INTRINSIC)   // utiliser du code assembleur x86
-  unsigned int hi = 0, lo = 0; 
-
-  asm volatile("cpuid\n\t"	/* pour vider le pipeline */
-	       "rdtscp\n\t"	/* on lit le registre TSC */
-	       "mov %%edx, %0\n\t" /* on restore les registres */
-	       "mov %%eax, %1\n\t" 
-	       : "=r" (hi), "=r" (lo) /* Le résultat */
-	       :: RDTSC_DIRTY);	      /* les registres à sauvegarder dans la pile */
-  unsigned long long that =   (unsigned long long)((lo) |
-						   (unsigned long long)(hi)<<32);
-
-  return that;
-#else
-  return _rdtsc();
-#endif
-} 
-
-static inline unsigned long long stop_timer() 
-{ 
-
-#if ! defined(USE_RDTSC_INTRINSIC)   // utiliser du code assembleur x86
-  unsigned int hi = 0, lo = 0; 
-
-  asm volatile("rdtscp\n\t"	   /* on lit le registre TSC */
-	       "mov %%edx, %0\n\t" /* on restore les registres */
-	       "mov %%eax, %1\n\t" 
-	       "cpuid\n\t"	      /* barrière hw */
-	       : "=r" (hi), "=r" (lo) /* Les PF et pf du résultat */
-	       :: RDTSC_DIRTY);	      /* les registres à sauvegarder dans la pile */
-  unsigned long long that =   (unsigned long long)((lo) |
-						   (unsigned long long)(hi)<<32);
-
-  return that; 
-#else
-  return _rdtsc();
-#endif
-} 
-
-// convertit la différence en double pour faciliter les calculs
-// et ajuste en enlevant avec le temps moyen d'excécution de la mesure
-static inline double dtime(long long debut, long long fin)
+/* Single-threaded teaching harness. AUX is an OS tag, not a portable CPU ID. */
+static unsigned tsc_aux_start, tsc_aux_stop;
+static inline int tsc_supported(void)
 {
-  double time;
-  return (double) (fin - debut - TSCCYCLES) ;
+  unsigned a, b, c, d;
+  if (!__get_cpuid(1, &a, &b, &c, &d) || !(d & (1u << 26))) return 0;
+  return __get_cpuid(0x80000001u, &a, &b, &c, &d) && (d & (1u << 27));
 }
 
-#ifdef EVALTSCTIME
-
-// Pour évaluer le temps d'une mesure sur un ordinateur
-// copier dans un ficher avec l'extension.c
-// et compiler avec gcc -O3 -DEVALTSCTIME tsc.c -lm
-
-#define N 100000
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-
-int cmp(const void *x, const void *y)
+/* Intel: MFENCE drains earlier stores; RDTSCP waits for earlier execution
+   and loads; LFENCE prevents later execution crossing the timestamp.
+   "memory" additionally bounds GCC's memory operations. Both endpoints
+   use the same sequence, exposing AUX for migration rejection. */
+static inline uint64_t read_timer(unsigned *aux)
 {
-  double xx = *(double*)x, yy = *(double*)y;
-  if (xx < yy) return -1;
-  if (xx > yy) return  1;
-  return 0;
+  unsigned lo, hi, tag;
+  __asm__ volatile("mfence\n\trdtscp\n\tlfence"
+                   : "=a"(lo), "=d"(hi), "=c"(tag) : : "memory");
+  *aux = tag;
+  return ((uint64_t)hi << 32) | lo;
 }
-
-
-
-double tmean(double ar[], int n){
-  // moyenne arrangée pour enlever les points abherrants.
-  // On cherche la médiane m et les quartiles q1 et q3.
-  // On calcule la moyenne sur tout ce qui est dans [m-k*(q3-q1),m+k*(q3-q1)]
-  // k=1.0 marche bien
-
-  double q1,q2,q3,sum=0.0,avg,k=1.0;
-  int ii,jj;
-  // On trie les données pour avoir mediane et quartiles
-  qsort(ar, n, sizeof(double), cmp);
-  q1=ar[N/4];
-  q2=ar[N/2];
-  q3=ar[3*N/4];
-
-  // calcul de la moyenne des valeurs dans l'intervalle [q2-k*(q3-q1),q2+k*(q3-q1)]
-  ii=0;
-  while(ar[ii++]<q2-k*(q3-q1)) ;
-  jj=ii;
-  while(ar[jj]<q2+k*(q3-q1)) {
-    sum += ar[jj];
-    jj++;
-    if(jj >= n-1) break;
-  }
-  return sum/(double)(jj-ii);
+static inline uint64_t start_timer(void) { return read_timer(&tsc_aux_start); }
+static inline uint64_t stop_timer(void) { return read_timer(&tsc_aux_stop); }
+static inline double dtime(uint64_t start, uint64_t stop)
+{
+  /* Unsigned difference; no unverified constant overhead subtraction. */
+  return (double)(stop - start);
 }
-
-void eval_tsc_cycles(){
-
-  double tsum=0.0, t2sum=0.0, tavg, tvar, tmin=1e30, tmax=0.0, ttavg;
-  double tresults[N];
-  long long debut, fin;
-  double t;
-  
-  for(int i=0;i<N;i++){
-
-    debut=start_timer();
-    fin=stop_timer();
-
-    //t = dtime(debut,fin) + (double) TSCCYCLES ;
-    t = (double) (fin - debut) ;
-    tresults[i]=t;
-    tsum += t;
-    t2sum += t*t;
-    tmin=(tmin<t ? tmin : t);
-    tmax=(tmax>t ? tmax : t);
-  }
-  tavg = tsum/N; // moyenne brute
-  tvar = sqrt((t2sum + (tavg*tavg*N) - 2 * tavg * tsum)/N); // variance brute
-  ttavg=tmean(tresults,N); // moyenne arrangée
-  printf("moyenne=%f\tmin=%f\tmax=%f\tvariance=%f\tavg=%f\n",tavg,tmin,tmax,tvar,ttavg);
-}
-
-
-
-int main(){
-  eval_tsc_cycles();
-}
-
 #endif

@@ -12,14 +12,8 @@
                    // diff�rents types de donn�es
 #endif
 
-// pour �viter des conversions int-float inutiles
-#if TYPE == int || TYPE == short || TYPE == char || TYPE == uint64_t
-#define ZERO 0
-#elif TYPE == float
-#define ZERO 0.0f
-#else
-#define ZERO 0.0
-#endif
+/* A C cast works for all supported TYPEs; the preprocessor cannot compare types. */
+#define ZERO ((TYPE)0)
 
 #ifndef BL
 #define BL 16 // La taille des blocs pour la mult de matrices par blocs
@@ -28,24 +22,26 @@
 #define STR1(x) #x
 #define STR(x) STR1(x)
 
-// Permet de lire le compteur interne du nombre de cycles du
-// processeur (TSC timestamp counter).
-// Le TSC renvoie le nombre de cycles cod� sur 64 bits (long long)
-// start_timer() initie la mesure et stop_timer() la termine
-// dtime() convertit en double la diff�rence pour simplifier les calculs ult�rieurs
-//      et retranche le temps (approximatif) b�cessaire � la mesure du TSC
+#include <limits.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include <float.h>
 
-static unsigned long long start_timer();
-static unsigned long long stop_timer();
-static double dtime(long long debut, long long fin);
+/* int loop indices and products N*N must remain representable. */
+#if N <= 0 || N > 46340 || M <= 0 || M > INT_MAX || BL <= 0 || BL > INT_MAX - N
+#error "Require 1 <= N <= 46340, M > 0, 1 <= BL <= INT_MAX-N"
+#endif
 
-// le fichier o� sont les fonctions d'acc�s au TSC
+/* TSC ticks are not core clock cycles. */
 #include "tsc.h"
 
 TYPE AF[N][N], YF[N][N], XF[N][N], YT[N][N], // matrices [N][N]
     BF[N * N], CF[N * N],                    // vecteurs N^2
     SF;                                      // accumulateur
 
+unsigned aux_begin[M], aux_end[M];
+int valid_sample[M];
 double resultats[M]; // les temps de calcul en double
 
 static inline int min(int a, int b)
@@ -56,7 +52,7 @@ static inline int min(int a, int b)
     return b;
 }
 
-long long debut, fin;
+uint64_t debut;
 double benchtime;
 
 // pour les calculs, on met les temps obtenu pour chaque essai dans un tableau.
@@ -64,30 +60,35 @@ double benchtime;
 void add_res(double res, int where)
 {
   resultats[where] = res;
+  aux_begin[where] = tsc_aux_start;
+  aux_end[where] = tsc_aux_stop;
+  valid_sample[where] = tsc_aux_start == tsc_aux_stop && isfinite(res) && res >= 0;
 }
 
 // la fonction d'affichage des r�sutats. Peut �tre red�finie en fonction des besoins
 // pour faire des statistiques, enlever les point aberrants, etc
 // Le deuxi�me param�tre est le nombre d'it�rations pour normaliser
-void print_res(char *funcname, double nb_iter)
+void print_res(const char *funcname, double nb_iter)
 {
-  double normalize = 1.0 / nb_iter;
-  printf("%s\t", funcname);
+  /* Raw samples are always retained, including invalid/migrated ones. */
+  printf("function,sample,ticks,denominator,ticks_per_iteration,aux_start,aux_stop,valid\n");
   for (int i = 0; i < M; i++)
-    printf("%g%s", resultats[i] * normalize, (i == M - 1 ? "\n" : "\t"));
+    printf("%s,%d,%.0f,%.0f,%.12g,%u,%u,%d\n", funcname, i,
+           resultats[i], nb_iter, resultats[i] / nb_iter,
+           aux_begin[i], aux_end[i], valid_sample[i]);
 }
 
 // entre deux mesures d'un m�me programme. R�d�finir si n�cessaire
-void separateur()
+void separateur(void)
 {
   printf("\n");
 }
 
 // Mise � z�ro d'un vecteur
-void zero()
+void zero(void)
 {
 
-  int i, j, m;
+  int i, m;
 
   for (m = 0; m < M; m++)
   {
@@ -103,7 +104,7 @@ void zero()
 }
 
 // copie de matrices
-void copy_ij()
+void copy_ij(void)
 {
   int i, j, m;
 
@@ -121,7 +122,7 @@ void copy_ij()
   separateur();
 }
 
-void copy_ji()
+void copy_ji(void)
 {
   int i, j, m;
 
@@ -140,7 +141,7 @@ void copy_ji()
 }
 
 // addition de deux matrices
-void add_ij()
+void add_ij(void)
 {
   int i, j, m;
 
@@ -158,7 +159,7 @@ void add_ij()
   separateur();
 }
 
-void add_ji()
+void add_ji(void)
 {
   int i, j, m;
 
@@ -177,9 +178,9 @@ void add_ji()
 }
 
 // Produit scalaire
-void ps()
+void ps(void)
 {
-  int i, j, k, m;
+  int i, m;
 
   for (m = 0; m < M; m++)
   {
@@ -198,7 +199,7 @@ void ps()
 }
 
 // Multiplication de matrices ijk
-void mm_ijk()
+void mm_ijk(void)
 {
   int i, j, k, m;
 
@@ -222,12 +223,17 @@ void mm_ijk()
 }
 
 // Multiplication de matrices ikj
-void mm_ikj()
+void mm_ikj(void)
 {
   int i, j, k, m;
   for (m = 0; m < M; m++)
   {
     debut = start_timer();
+    /* Each sample computes YF = AF * XF, independent of old output. */
+    for (i = 0; i < N; i++)
+      for (j = 0; j < N; j++)
+        YF[i][j] = ZERO;
+
     for (i = 0; i < N; i++)
       for (k = 0; k < N; k++)
       {
@@ -243,24 +249,29 @@ void mm_ikj()
 }
 
 // Multiplication de matrices par blocs
-void mm_b_ijk()
+void mm_b_ijk(void)
 {
-  int i, j, k, m, ii, jj, kk;
+  int i, j, k, m, jj, kk;
 
   for (m = 0; m < M; m++)
   {
     debut = start_timer();
+    /* Each sample computes YF = AF * XF, independent of old output. */
+    for (i = 0; i < N; i++)
+      for (j = 0; j < N; j++)
+        YF[i][j] = ZERO;
+
 
     for (jj = 0; jj < N; jj += BL)
       for (kk = 0; kk < N; kk += BL)
         for (i = 0; i < N; i++)
         {
-          for (j = jj; j < min(jj + BL - 1, N); j++)
+          for (j = jj; j < min(jj + BL, N); j++)
           {
             SF = ZERO;
-            for (k = kk; k < min(kk + BL - 1, N); k++)
+            for (k = kk; k < min(kk + BL, N); k++)
               SF += AF[i][k] * XF[k][j];
-            YF[i][j] = SF;
+            YF[i][j] += SF;
           }
         }
 
@@ -272,16 +283,65 @@ void mm_b_ijk()
   separateur();
 }
 
-void main()
+/* Deterministic, bounded inputs. Call before each independent procedure.
+   Integer matrix sums <= N, dot <= N*N; additions require M+1 <= TYPE_MAX.
+   The small nonnegative integer data are also exactly representable as float. */
+void init_inputs(void)
 {
-  printf("Evaluation : N=%d, type=" STR(TYPE) "\n", N);
-  zero();
-  // copy_ij();
-  // copy_ji();
-  // add_ij();
-  // add_ji();
-  ps();
-  mm_ijk();
-  // mm_ikj();
-  // mm_b_ijk();
+  for (int i = 0; i < N; i++)
+    for (int j = 0; j < N; j++) {
+      AF[i][j] = (TYPE)((i + j) % 2);
+      XF[i][j] = (TYPE)((i + 2 * j + 1) % 2);
+      YF[i][j] = (TYPE)((i + j + 1) % 2);
+      BF[i * N + j] = (TYPE)((i + j) % 2);
+      CF[i * N + j] = (TYPE)((i + 2 * j + 1) % 2);
+    }
 }
+
+/* Visible use outside the interval, without volatile in the arithmetic loops. */
+void print_checksum(const TYPE *data, size_t count)
+{
+  long double sum = 0;
+  for (size_t i = 0; i < count; i++) sum += data[i];
+  printf("# checksum=%.18Lg\n", sum);
+}
+
+void print_matrix_checksum(TYPE data[N][N])
+{
+  long double sum = 0;
+  for (int i = 0; i < N; i++)
+    for (int j = 0; j < N; j++) sum += data[i][j];
+  printf("# checksum=%.18Lg\n", sum);
+}
+
+#ifndef TP1_NO_MAIN
+int main(int argc, char **argv)
+{
+  if (!tsc_supported()) {
+    fprintf(stderr, "RDTSCP/SSE2 unavailable\n");
+    return EXIT_FAILURE;
+  }
+  const char *op = argc > 1 ? argv[1] : "mm_ijk";
+  long double type_max = _Generic((TYPE)0, char: CHAR_MAX, short: SHRT_MAX,
+      int: INT_MAX, uint64_t: UINT64_MAX, float: FLT_MAX, double: DBL_MAX);
+  long double bound = !strcmp(op, "ps") ? (long double)N * N :
+      !strncmp(op, "mm_", 3) ? N : !strncmp(op, "add_", 4) ? (long double)M + 1 : 1;
+  if (bound > type_max) {
+    fprintf(stderr, "Input bound exceeds TYPE range for this operation\n");
+    return EXIT_FAILURE;
+  }
+  init_inputs();
+  printf("# N=%d M=%d BL=%d TYPE=" STR(TYPE) " unit=TSC_ticks op=%s\n", N, M, BL, op);
+  if (!strcmp(op, "zero")) { zero(); print_checksum(BF, N * N); }
+  else if (!strcmp(op, "ps")) { ps(); print_checksum(&SF, 1); }
+  else if (!strcmp(op, "copy_ij")) { copy_ij(); print_matrix_checksum(AF); }
+  else if (!strcmp(op, "copy_ji")) { copy_ji(); print_matrix_checksum(AF); }
+  else if (!strcmp(op, "add_ij")) { add_ij(); print_matrix_checksum(AF); }
+  else if (!strcmp(op, "add_ji")) { add_ji(); print_matrix_checksum(AF); }
+  else if (!strcmp(op, "mm_ijk")) { mm_ijk(); print_matrix_checksum(YF); }
+  else if (!strcmp(op, "mm_ikj")) { mm_ikj(); print_matrix_checksum(YF); }
+  else if (!strcmp(op, "mm_b_ijk")) { mm_b_ijk(); print_matrix_checksum(YF); }
+  else { fprintf(stderr, "Unknown operation: %s\n", op); return EXIT_FAILURE; }
+  return EXIT_SUCCESS;
+}
+#endif
