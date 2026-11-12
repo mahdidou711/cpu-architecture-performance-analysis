@@ -158,6 +158,12 @@ int main(int argc,char **argv)
   unsigned tag;
   uint64_t warm=read_timer(&tag);
   while(read_timer(&tag)-warm<124800000u) if(!fn(2000)) return 3;
+  printf("# empty=");
+  for(int i=0;i<101;++i) {
+    uint64_t a=start_timer(), b=stop_timer();
+    printf("%s%llu",i?";":"",(unsigned long long)(b-a));
+  }
+  printf("\n");
   printf("sample,ticks,denominator,aux_start,aux_stop,valid\n");
   for(int i=0;i<31;++i) {
     uint64_t a=start_timer();
