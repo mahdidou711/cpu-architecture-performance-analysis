@@ -157,7 +157,7 @@ launches, always 30), `BL` (block size).
 | `S1_ticks_per_unit`, `S2_ticks_per_unit` | TSC ticks per unit (N^2 elements for `zero` and `ps`, N^3 iterations for `mm_ikj`); S1 median of launch medians, S2 median of launch minima, 9 launches |
 | `between_launch_iqr_relative` | interquartile range of the launch medians divided by their median |
 | `estimated_frequency_mhz_median`, `estimated_cycles_per_unit` | **Estimates, not measurements.** The frequency comes from software probes taken before and after each launch; `estimated_cycles_per_unit` converts the time of each launch with it (median over launches). No hardware performance counter was available, so these are not core cycle counts. In the larger GCC campaign, 31.6 % of the launches have frequency estimates that differ by more than 100 MHz before and after the launch, so the correction is coarse. Use as a sensitivity indication, never as a principal quantity |
-| `median_of_paired_ratios_copy_over_original` | per-round ratio of the second instance to the first instance of identical code, median over 30 rounds; its deviation from 1 gives the scale of the noise of the method |
+| `median_of_paired_ratios_original_over_copy` | per-round ratio of the original binary to its byte-identical copy (the two instances run in randomized order within each round), median over 30 rounds; its deviation from 1 gives the scale of the noise of the method |
 
 ## Figures
 

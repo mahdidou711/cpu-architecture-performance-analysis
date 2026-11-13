@@ -1,4 +1,4 @@
-kernel,element_type,N,BL,gcc_level,launches,median_of_paired_ratios_copy_over_original,paired_ratio_ci95_low,paired_ratio_ci95_high
+kernel,element_type,N,BL,gcc_level,launches,median_of_paired_ratios_original_over_copy,paired_ratio_ci95_low,paired_ratio_ci95_high
 mm_ijk,float,1000,32,-O2,30,0.985223,0.946933,1.00783
 mm_ikj,float,1000,32,-O2,30,0.996194,0.943897,1.03595
 mm_b_ijk,float,1000,32,-O2,30,0.989638,0.965762,1.02422
