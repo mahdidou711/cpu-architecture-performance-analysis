@@ -51,6 +51,7 @@ Sources of the per-dataset conditions:
 | `matrix_multiply_ijk_vs_ikj.csv`, `block_size_n1000.csv`, `dot_product_ps_vs_ps4.csv` | 3, first discarded, two kept | none (two samples) | 30 |
 | `instruction_latency.csv` | 31 per launch, first discarded; per-launch median | none | 10 |
 | `transposed_product.csv`, `transpose_amortization.csv` | 3, first discarded, two kept | none (two samples) | 30 |
+| `addition_order_ij_vs_ji.csv` | 51, first discarded | high outliers above Q3 + 3 IQR removed (if IQR > 0) | 30 |
 
 Every configuration was checked against the timer-cost criterion: the raw
 duration of a measured call is at least 100 times the cost of an empty timer
@@ -113,6 +114,7 @@ explanations are hypotheses compatible with the data, not demonstrated causes.
 | [`instruction_latency.csv`](csv/instruction_latency.csv) | 36 | x86 assembly chains: add, multiply, divide for integer and float, one dependent chain or four independent chains, plus empty-loop controls, 2000 and 20000 loop trips |
 | [`transposed_product.csv`](csv/transposed_product.csv) | 12 | `mm_ijk`, `mm_ikj`, `mm_b_ijk` against `trans_total` (transposition followed by the transposed product), float and int, N = 256 and 1000, GCC `-O2` |
 | [`transpose_amortization.csv`](csv/transpose_amortization.csv) | 12 | estimated number of reuses of a transposed matrix needed to amortise the transposition, float and int, N = 256 and 1000, GCC `-O2` |
+| [`addition_order_ij_vs_ji.csv`](csv/addition_order_ij_vs_ji.csv) | 8 | `add_ij` vs `add_ji`, float and double, N = 256, 512, 1024, 1536, GCC `-O3` |
 
 ### Column dictionary
 
@@ -145,6 +147,7 @@ launches, always 30), `BL` (block size).
 | `median_of_paired_ratios_kernel_over_trans_total` | per-round ratio of the duration of `kernel` to the duration of `trans_total` (one measured call: transposition then transposed product), median over the 30 rounds; above 1 means `kernel` is slower than `trans_total`; the interval columns are the bootstrap interval described above |
 | `transpose_ticks`, `transposed_product_ticks`, `reference_product_ticks` | S1 (as above) of the transposition, of the product with the transposed matrix, and of the kernel named in `kernel` |
 | `reuse_threshold`, `estimated_min_reuses` | model: reusing a transposed matrix r times costs T + rP, against rC with the reference kernel (T, P, C the three columns above). If C > P, the model predicts a benefit for r > T / (C - P), the threshold; `estimated_min_reuses` is its integer part plus one. `none` when C is not larger than P. This is an estimate from medians; no sequence of r products was measured, and identical machine states are assumed |
+| `reading` | `difference_observed`: difference above 10 % with a 95 % interval excluding 1, causality not established; `inconclusive`: difference below 10 %, interval containing 1, or strong disagreement between series; `not_usable_duration`: call shorter than 100 times the timer cost |
 
 ## Figures
 

@@ -1,0 +1,9 @@
+element_type,N,gcc_level,launches,ij_S1_ticks_per_element,ji_S1_ticks_per_element,ratio_of_median_durations_ji_over_ij,median_of_paired_ratios_ji_over_ij,paired_ratio_ci95_low,paired_ratio_ci95_high,duration_at_least_100x_timer_cost,reading
+float,256,-O3,30,0.292747,0.295677,1.01001,1.29476,1.08934,1.41613,1,difference_observed
+float,512,-O3,30,0.4167,0.521669,1.25191,0.989985,0.935446,1.01352,1,inconclusive
+float,1024,-O3,30,0.57897,0.845321,1.46004,1.04133,0.999725,1.15674,1,inconclusive
+float,1536,-O3,30,0.907546,1.09658,1.20829,1.01791,0.99344,1.05119,1,inconclusive
+double,256,-O3,30,0.579178,0.676048,1.16726,0.857888,0.824392,0.902749,1,difference_observed
+double,512,-O3,30,0.936315,0.847594,0.905245,0.996371,0.902182,1.00376,1,inconclusive
+double,1024,-O3,30,1.92218,1.98648,1.03345,0.992594,0.960094,1.00329,1,inconclusive
+double,1536,-O3,30,2.14763,2.30214,1.07195,1.00831,0.964709,1.02402,1,inconclusive
