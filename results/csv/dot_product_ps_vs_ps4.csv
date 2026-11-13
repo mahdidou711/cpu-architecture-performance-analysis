@@ -1,0 +1,4 @@
+N,element_type,gcc_level,launches,ps_S1_ticks,ps4_S1_ticks,ps_S1_ticks_per_term,ps4_S1_ticks_per_term,ratio_of_median_durations_ps_over_ps4,median_of_paired_ratios_ps_over_ps4,paired_ratio_ci95_low,paired_ratio_ci95_high
+256,float,-O2,30,76344,19355.5,1.16492,0.295341,3.94431,3.92541,3.69351,3.97399
+512,float,-O2,30,308288,122914.75,1.17603,0.468883,2.50814,2.59042,2.36799,2.77841
+1000,float,-O2,30,1315177.5,756089.25,1.31518,0.756089,1.73945,1.74997,1.37894,1.99613

@@ -15,10 +15,9 @@
 .idea/
 .vscode/
 
-# Generated results
-/results/csv/*.csv
-/results/figures/*.png
-/results/figures/*.pdf
+# Local experimental outputs (results/csv and results/figures hold the
+# versioned reference results and are NOT ignored)
+/results/local/
 
 # Temporary files
 *.tmp
