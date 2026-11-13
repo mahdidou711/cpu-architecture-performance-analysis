@@ -1,108 +1,176 @@
 # Processor Performance Benchmarks
 
-A compact, self-contained C benchmark suite for teaching processor
-performance. It covers matrix kernels, memory access patterns, and TSC-based
-timing, together with functional tests and a small methodology document.
+C programs and measurements on how loop order, compiler options, blocking, and
+independent accumulators change the execution time of simple kernels on an
+x86-64 processor. Timing uses the Time Stamp Counter (`RDTSCP` with fences).
 
-The suite is intentionally small and dependency-free. It is meant to be read,
-compiled, and run on a single x86-64 Linux host.
+**Author:** Mehdi BOUAMA, Master 2 SETI (Systèmes Embarqués et Traitement de
+l'Information), Université Paris-Saclay, 2026. Course project in processor
+architecture.
 
-## Features
+## Technical objectives
 
-- **Matrix kernels**: zeroing, row/column copies, row/column additions,
-  dot product, and matrix multiplication in `ijk`, `ikj`, and blocked
-  `mm_b_ijk` variants.
-- **Memory access patterns**: `ij` and `ji` traversals, transposition, and
-  transposed multiplication.
-- **Timing**: `RDTSC`/`RDTSCP` with `MFENCE`/`LFENCE` barriers, TSC ticks
-  normalised by the operation count.
-- **Functional tests**: independent long-double oracles, repeated calls,
-  input-preservation checks, and an optional ASan/UBSan run.
-- **Latency probes**: explicit x86 assembly for integer and floating-point
-  add, multiply, divide, and empty-loop chains.
-- **Platform probes**: CPUID, TSC, cache, and overhead characterisation.
+- Measure execution time with a TSC-based timer and state exactly what the
+  numbers mean (ticks, not core cycles).
+- Quantify the effect of GCC optimisation levels `-O0` to `-O3`.
+- Compare memory access orders: row-wise vs column-wise copy, `ijk` vs `ikj`
+  matrix multiplication.
+- Study blocking (tiling) of the matrix product and the choice of block size.
+- Compare a single-accumulator dot product with a four-accumulator version.
+- Check every kernel against independent `long double` oracles, including under
+  AddressSanitizer and UndefinedBehaviorSanitizer.
+
+## Reference platform
+
+| Item | Value |
+| --- | --- |
+| Processor | Intel Core i5-1335U (hybrid), one performance core used for the reference results |
+| TSC | invariant, 2.496 GHz (CPUID leaf 0x15) |
+| Caches | L1D 48 KiB, L2 1.25 MiB per performance core, L3 12 MiB |
+| Compiler | GCC 13.3.0 (Ubuntu 24.04), `-std=gnu11`, `-O0` to `-O3` as stated, no `-march`, no `-ffast-math` |
+| Environment | Linux; frequency, temperature, and background load not controlled |
+
+## Algorithms implemented
+
+| Program | Kernels |
+| --- | --- |
+| `tp1` | `zero`; matrix copy `copy_ij`, `copy_ji`; matrix addition `add_ij`, `add_ji`; dot product `ps`; matrix multiplication `mm_ijk`, `mm_ikj`; blocked multiplication `mm_b_ijk` (block size `BL`) |
+| `matrix_extras` | `transpose`; transposed product `trans_mul`, `trans_total`; four-accumulator dot product `ps4`; `mm_ijk`, `mm_ikj`, `mm_b_ijk`, `ps` with an analytic correctness oracle |
+| `latency` | x86 assembly chains: add, multiply, divide, empty loop, for integer and float, one or four independent chains |
+| `tsc_probe`, `overhead_probe`, `cpu_probe` | TSC cross-check and empty-timer cost, instrumentation overhead scaling, CPUID and cache description (one JSON line) |
+
+The basic kernels of `tp1.c` derive from the skeleton provided with the
+course. The timing header `tsc.h`, the instrumentation, the matrix extras,
+the probes, and the tests are the author's work.
+
+## Results
+
+Reference results measured on the platform above; the tables are in
+[`results/csv`](results/csv), the definitions and conditions in
+[`results/README.md`](results/README.md). These are archived results from
+a longer protocol than `make run` (30 launches, pinned core, random
+order); `make` does not regenerate them. A ratio `a / b` is above 1 when `b`
+is faster.
+
+| Question | Result |
+| --- | --- |
+| GCC `-O0` vs `-O2` | slower in all 16 configurations: ratio 3.2 to 17.5 |
+| GCC `-O1` vs `-O2` | slower in 13 of 16 (1.08 to 3.14), equivalent for one, inconclusive for two |
+| GCC `-O3` vs `-O2` | faster for `mm_ikj` (0.52 at N=128, 0.59 at N=256) and `add_ij` at N=256 (0.83); equivalent or inconclusive for the others |
+| Copy, column-wise (`ji`) vs row-wise (`ij`) | `ji` slower: median of paired ratios from 7.2 (float, N=256) to 21.2 (double, N=1024) |
+| `mm_ijk` vs `mm_ikj`, N=1000 | `ikj` faster: **median of paired ratios 5.695** (95 % interval 5.552 to 5.862) |
+| Same, as a ratio of median durations | 5.651 (a different quantity: 1.3226 vs 0.2340 ticks per iteration, 0.530 s vs 0.094 s per product) |
+| `mm_ijk` vs `mm_ikj`, N=1024 | median of paired ratios 25.8 (24.5 to 26.8); `ijk` costs 6.23 ticks per iteration at N=1024 and 1.32 at N=1000 |
+| Block size, N=1000, vs `mm_ijk` | `BL=8` best (median of paired ratios 1.388, 1.365 to 1.446); `BL=32` 1.119 (1.088 to 1.138); `BL=1` 0.355; `BL=1000` 0.976, not significant |
+| `ps4` vs `ps`, float | gain 3.93 at N=256, 2.59 at N=512, 1.75 at N=1000 (1.38 to 2.00) |
+
+The median of paired ratios is the primary estimator of a gain; the ratio of
+median durations is published beside it and is a different quantity.
+
+![GCC optimisation levels](results/figures/gcc_optimization_levels.png)
+
+![Copy order](results/figures/copy_ij_vs_ji.png)
+
+![ijk vs ikj](results/figures/matrix_multiply_ijk_vs_ikj.png)
+
+![Block size](results/figures/block_size_n1000.png)
+
+The difference between N=1000 and N=1024 is compatible with row strides that
+are a power of two (4096 bytes) conflicting in the cache sets; this was not
+verified with hardware counters. Likewise the large `ji` penalty is compatible
+with a column-wise stride, not demonstrated as a cause.
+
+## Timing methodology
+
+- Each measurement is `MFENCE; RDTSCP; LFENCE` before and after the kernel,
+  with a compiler `memory` clobber. MFENCE drains earlier stores, RDTSCP waits
+  for earlier execution and loads, LFENCE stops later instructions from
+  crossing the timestamp.
+- The unit is the TSC tick. The TSC of the reference platform is invariant, so
+  it counts at a constant 2.496 GHz regardless of the core frequency; it is
+  not a core cycle counter, and turbo, frequency scaling, and hybrid cores
+  prevent a direct conversion to cycles. Seconds are `ticks / 2.496e9`.
+- The `IA32_TSC_AUX` tag is recorded at both ends of each sample; samples with
+  different tags (migration) are marked invalid but kept in the raw output.
+- Initialisation, printing, and the checksum are outside the timed interval.
+  Repetitions reuse buffers, so data may be warm in cache after the first.
+- An empty timer pair costs roughly 50 to 140 ticks depending on the
+  campaign and the optimisation level; the reference results require calls at
+  least 100 times longer than that cost (one documented exception).
+
+Details and statistics: [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md).
+
+## Limits of the measurements
+
+- Single machine, hybrid processor, uncontrolled frequency and temperature
+  (package temperature 70 to 100 C during the campaigns). Absolute values do
+  not transfer; orderings are the result.
+- No hardware performance counters were available, so cache and memory
+  explanations remain hypotheses.
+- Intervals are descriptive; rounds were not shown to be independent and the
+  GCC table involves many comparisons without multiplicity correction.
+- The reference results were produced with a longer protocol than the one the
+  public programs implement (see [`results/README.md`](results/README.md) and
+  section 7 of the methodology).
+- `matrix_extras` requires a 4-byte `TYPE` (`float` or `int`).
+- Measurements are for relative comparison on one host, not absolute
+  performance claims.
 
 ## Requirements
 
-- x86-64 Linux with SSE2 and `RDTSCP`.
-- A C compiler (GCC is the default; `CC` can be overridden).
-- GNU Make.
-- `-lm` (standard maths library).
+x86-64 Linux with SSE2 and `RDTSCP`, GCC (default; `CC=clang` also builds and
+passes the tests), GNU Make, `nm` (for the sanitizer check), `-lm`.
 
-## Build
+## Build, run, and test
+
+```sh
+make                  # build the programs (N=1000, TYPE=float, BL=32, M=16)
+make test             # 66 functional checks, a few seconds
+make test-sanitize    # same checks with ASan and UBSan, separate build
+make check            # tests plus a smoke run of every program, about 15 s
+make bench            # quick tp1 run: N=32, BL=8, M=4
+make bench-full       # tp1 run: N=1000, BL=32, M=16 (about 20 s)
+make run N=256 M=5    # tp1 with chosen parameters (N, TYPE, BL, M)
+make clean
+```
+
+Build products go to `build/N<N>_<TYPE>_B<BL>_M<M>_<checksum>/bin`, a
+directory selected by the compiler, the flags, and the four parameters, so a
+changed parameter never reuses an old executable. `make print-bin-dir` prints
+the directory of the current configuration. To run a program directly, pinned
+to core 0:
 
 ```sh
 make
+BIN=$(make print-bin-dir)
+taskset -c 0 "$BIN/tp1" mm_ikj
+taskset -c 0 "$BIN/cpu_probe"      # check the core type and the invariant TSC
 ```
 
-The default build uses `N=1000`, `TYPE=float`, `BL=32`, and `M=16`. The
-build outputs are written to `build/bin/`.
-
-## Run
-
-```sh
-make run          # run the default operation set
-make bench        # short run, N=32, BL=8, M=4
-make bench-full   # full run, N=1000, BL=32, M=16
-```
-
-Each run prints one CSV block per operation, with a header line, the raw
-samples, and a final checksum. The timing unit is the TSC increment; see
-[docs/METHODOLOGY.md](docs/METHODOLOGY.md).
+Each run prints a header, a CSV block of raw samples (`function,sample,ticks,
+denominator,ticks_per_iteration,aux_start,aux_stop,valid`), and a checksum.
 
 ## Tests
 
-```sh
-make test          # functional tests
-make test-sanitize # functional tests with ASan/UBSan
-make check         # tests plus a short smoke benchmark
-```
-
-The tests build the 12 variants (float, int, double; `N=32` and `N=33`)
-and check the kernels against independent long-double oracles. The test
-target prints `PASS`/`FAIL` lines to stderr; the benchmark's stdout is
-suppressed.
-
-## Operations
-
-| Program | Operations |
-| --- | --- |
-| `tp1` | `zero`, `copy_ij`, `copy_ji`, `add_ij`, `add_ji`, `ps`, `mm_ijk`, `mm_ikj`, `mm_b_ijk` |
-| `matrix_extras` | `transpose`, `trans_mul`, `trans_total`, `ps4`, `mm_ijk`, `mm_ikj`, `mm_b_ijk`, `ps` |
-| `latency` | `int_add_1`, `int_add_4`, `int_mul_1`, `int_mul_4`, `int_div_1`, `int_div_4`, `int_empty_1`, `int_empty_4`, `float_add_1`, `float_add_4`, `float_mul_1`, `float_mul_4`, `float_div_1`, `float_div_4`, `float_empty_1`, `float_empty_4`, `int_divempty_1`, `int_divempty_4` |
-| `tsc_probe` | empty TSC overhead, CPUID.15, cross-check against `CLOCK_MONOTONIC_RAW` |
-| `overhead_probe` | TSC instrumentation overhead vs. dependent-add chain |
-| `cpu_probe` | CPUID, brand, core type, caches, invariant TSC, as one JSON line |
+The tests build 12 variants (float, int, double; N=32 and N=33) of
+`tests/test_tp1.c` and `tests/test_matrix.c` and compare every kernel with
+independent `long double` oracles, repeated calls, input preservation, and
+transposition. Dimensions that are not multiples of the block size are
+covered. `make test-sanitize` builds in `build/sanitize`, verifies that each
+executable links the ASan and UBSan runtimes, and aborts on any report
+(`-fno-sanitize-recover=all`). Each test prints one or more `PASS` lines on
+stderr; any `FAIL` or a non-zero exit stops the run.
 
 ## Project structure
 
 ```
-src/        C sources
+src/        C programs and the TSC timer (tsc.h)
 tests/      functional tests
-docs/       methodology
-results/    generated results (empty)
+docs/       timing methodology
+results/    reference CSV tables and figures, data dictionary
 Makefile    build, test, and run targets
 ```
-
-## Methodology
-
-The timing harness uses `RDTSC`/`RDTSCP` with explicit memory barriers. The
-native unit is the TSC increment, not a core cycle. The TSC is invariant
-and is not a hardware cycle counter; turbo, frequency scaling, SIMD, and
-hybrid cores prevent a direct mapping. The suite reports raw TSC ticks and
-normalises by the operation count. The raw samples are retained, including
-invalid or migrated ones.
-
-See [docs/METHODOLOGY.md](docs/METHODOLOGY.md) for the timing protocol,
-the statistics, and the limits.
 
 ## License
 
 MIT. See [LICENSE](LICENSE).
-
-## Notes
-
-- The suite is single-threaded and uses only x86-64 features.
-- The benchmark is intended for teaching and for relative comparisons on
-  the same host, not for absolute performance claims.
-- The code is not a substitute for a full performance-engineering study.
