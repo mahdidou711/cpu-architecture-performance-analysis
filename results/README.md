@@ -50,6 +50,7 @@ Sources of the per-dataset conditions:
 | `copy_ij_vs_ji.csv` | 51, first discarded | high outliers above Q3 + 3 IQR removed (if IQR > 0) | 30 |
 | `matrix_multiply_ijk_vs_ikj.csv`, `block_size_n1000.csv`, `dot_product_ps_vs_ps4.csv` | 3, first discarded, two kept | none (two samples) | 30 |
 | `instruction_latency.csv` | 31 per launch, first discarded; per-launch median | none | 10 |
+| `transposed_product.csv`, `transpose_amortization.csv` | 3, first discarded, two kept | none (two samples) | 30 |
 
 Every configuration was checked against the timer-cost criterion: the raw
 duration of a measured call is at least 100 times the cost of an empty timer
@@ -110,6 +111,7 @@ explanations are hypotheses compatible with the data, not demonstrated causes.
 | [`block_size_n1000.csv`](csv/block_size_n1000.csv) | 12 | `mm_b_ijk` for 12 block sizes vs `mm_ijk`, N = 1000, float, GCC `-O2` |
 | [`dot_product_ps_vs_ps4.csv`](csv/dot_product_ps_vs_ps4.csv) | 3 | `ps` (one accumulator) vs `ps4` (four accumulators), float, N = 256, 512, 1000, GCC `-O2` |
 | [`instruction_latency.csv`](csv/instruction_latency.csv) | 36 | x86 assembly chains: add, multiply, divide for integer and float, one dependent chain or four independent chains, plus empty-loop controls, 2000 and 20000 loop trips |
+| [`transposed_product.csv`](csv/transposed_product.csv) | 12 | `mm_ijk`, `mm_ikj`, `mm_b_ijk` against `trans_total` (transposition followed by the transposed product), float and int, N = 256 and 1000, GCC `-O2` |
 
 ### Column dictionary
 
@@ -139,6 +141,7 @@ launches, always 30), `BL` (block size).
 | `median_ticks_per_operation`, `ns_per_operation` | ticks per operation of the chain: median over the 10 launches of the per-launch median of 30 samples; `ns_per_operation` is that value divided by 2.496 (TSC frequency in GHz), not a core-clock time |
 | `p10_ticks_per_operation`, `p90_ticks_per_operation` | 10th and 90th percentile of the 10 per-launch medians |
 | `min_duration_over_timer_cost`, `all_launches_long_enough` | smallest ratio over launches of the median call duration to the median cost of an empty timer pair; `true` if at least 100. Empty-loop controls at 2000 trips are shorter than that and are descriptive only |
+| `median_of_paired_ratios_kernel_over_trans_total` | per-round ratio of the duration of `kernel` to the duration of `trans_total` (one measured call: transposition then transposed product), median over the 30 rounds; above 1 means `kernel` is slower than `trans_total`; the interval columns are the bootstrap interval described above |
 
 ## Figures
 

@@ -89,6 +89,7 @@ These tables complement the results above. They come from the same measurement c
 - [`instruction_latency.csv`](results/csv/instruction_latency.csv): add, multiply and divide chains, one dependent chain against four independent chains, 10 launches. At 20000 loop trips the median is 0.546 tick per integer add on one chain and 0.158 on four (float: 1.091 and 0.289); a division costs 6.68 (integer) and 6.04 (float) ticks on one chain, 3.31 and 1.64 on four. Ticks are TSC ticks, not core cycles; the empty-loop controls are listed in the table.
 
   ![Instruction chains](results/figures/instruction_latency.png)
+- [`transposed_product.csv`](results/csv/transposed_product.csv): the three product kernels against the total cost of transposing and multiplying (`trans_total`), N = 256 and 1000, float and int. A ratio above 1 means the kernel is slower. `mm_ikj` is faster than `trans_total` (0.218 for float, N=1000) and `mm_ijk` slower (1.25 for float and 10.3 for int, N=1000). The float and int results differ; no cause is established.
 
 ## Timing methodology
 
