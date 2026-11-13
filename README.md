@@ -82,6 +82,14 @@ are a power of two (4096 bytes) conflicting in the cache sets; this was not
 verified with hardware counters. Likewise the large `ji` penalty is compatible
 with a column-wise stride, not demonstrated as a cause.
 
+## Additional reference tables
+
+These tables complement the results above. They come from the same measurement campaigns and are described in [`results/README.md`](results/README.md). Values are ticks of the invariant TSC, not core cycles.
+
+- [`instruction_latency.csv`](results/csv/instruction_latency.csv): add, multiply and divide chains, one dependent chain against four independent chains, 10 launches. At 20000 loop trips the median is 0.546 tick per integer add on one chain and 0.158 on four (float: 1.091 and 0.289); a division costs 6.68 (integer) and 6.04 (float) ticks on one chain, 3.31 and 1.64 on four. Ticks are TSC ticks, not core cycles; the empty-loop controls are listed in the table.
+
+  ![Instruction chains](results/figures/instruction_latency.png)
+
 ## Timing methodology
 
 - Each measurement is `MFENCE; RDTSCP; LFENCE` before and after the kernel,

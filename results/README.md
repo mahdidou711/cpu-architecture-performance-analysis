@@ -49,6 +49,7 @@ Sources of the per-dataset conditions:
 | `gcc_optimization_levels.csv` | 51, first discarded | high outliers above Q3 + 1.5 IQR removed | 30 |
 | `copy_ij_vs_ji.csv` | 51, first discarded | high outliers above Q3 + 3 IQR removed (if IQR > 0) | 30 |
 | `matrix_multiply_ijk_vs_ikj.csv`, `block_size_n1000.csv`, `dot_product_ps_vs_ps4.csv` | 3, first discarded, two kept | none (two samples) | 30 |
+| `instruction_latency.csv` | 31 per launch, first discarded; per-launch median | none | 10 |
 
 Every configuration was checked against the timer-cost criterion: the raw
 duration of a measured call is at least 100 times the cost of an empty timer
@@ -108,6 +109,7 @@ explanations are hypotheses compatible with the data, not demonstrated causes.
 | [`matrix_multiply_ijk_vs_ikj.csv`](csv/matrix_multiply_ijk_vs_ikj.csv) | 8 | `mm_ijk` vs `mm_ikj`, float, N = 32 to 1024, GCC `-O2` |
 | [`block_size_n1000.csv`](csv/block_size_n1000.csv) | 12 | `mm_b_ijk` for 12 block sizes vs `mm_ijk`, N = 1000, float, GCC `-O2` |
 | [`dot_product_ps_vs_ps4.csv`](csv/dot_product_ps_vs_ps4.csv) | 3 | `ps` (one accumulator) vs `ps4` (four accumulators), float, N = 256, 512, 1000, GCC `-O2` |
+| [`instruction_latency.csv`](csv/instruction_latency.csv) | 36 | x86 assembly chains: add, multiply, divide for integer and float, one dependent chain or four independent chains, plus empty-loop controls, 2000 and 20000 loop trips |
 
 ### Column dictionary
 
@@ -131,6 +133,12 @@ launches, always 30), `BL` (block size).
 | `flagged_fragile` | 1 if the decision differed between statistics in the main run |
 | `duration_at_least_100x_timer_cost` | 1 if the call lasts at least 100 times an empty timer pair |
 | `p_holm`, `gain_over_5pct_significant` | see the block-size rule above |
+| `operation`, `role` | `add`, `mul`, `div` are `instruction` chains; `empty` (loop counter only) and `divempty` (the operand moves of `div` without the division) are `control` chains |
+| `chains` | 1: one dependent chain; 4: four independent chains |
+| `loop_trips` | iterations of the assembly loop (2000 or 20000) |
+| `median_ticks_per_operation`, `ns_per_operation` | ticks per operation of the chain: median over the 10 launches of the per-launch median of 30 samples; `ns_per_operation` is that value divided by 2.496 (TSC frequency in GHz), not a core-clock time |
+| `p10_ticks_per_operation`, `p90_ticks_per_operation` | 10th and 90th percentile of the 10 per-launch medians |
+| `min_duration_over_timer_cost`, `all_launches_long_enough` | smallest ratio over launches of the median call duration to the median cost of an empty timer pair; `true` if at least 100. Empty-loop controls at 2000 trips are shorter than that and are descriptive only |
 
 ## Figures
 
@@ -141,6 +149,7 @@ launches, always 30), `BL` (block size).
 | [`figures/matrix_multiply_ijk_vs_ikj.png`](figures/matrix_multiply_ijk_vs_ikj.png) | `matrix_multiply_ijk_vs_ikj.csv` |
 | [`figures/block_size_n1000.png`](figures/block_size_n1000.png) | `block_size_n1000.csv` |
 | [`figures/dot_product_ps_vs_ps4.png`](figures/dot_product_ps_vs_ps4.png) | `dot_product_ps_vs_ps4.csv` |
+| [`figures/instruction_latency.png`](figures/instruction_latency.png) | `instruction_latency.csv` (instruction chains at 20000 trips) |
 
 ![Dot product: one accumulator vs four](figures/dot_product_ps_vs_ps4.png)
 
