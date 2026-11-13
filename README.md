@@ -136,9 +136,11 @@ make clean
 
 Build products go to `build/N<N>_<TYPE>_B<BL>_M<M>_<checksum>/bin`, a
 directory selected by the compiler, the flags, and the four parameters, so a
-changed parameter never reuses an old executable. `make print-bin-dir` prints
-the directory of the current configuration. To run a program directly, pinned
-to core 0:
+changed parameter never reuses an old executable. The Makefile defaults are
+`N=1000`, `TYPE=float`, `BL=32`, `M=16`; compiling `src/tp1.c` directly
+without the Makefile uses the source defaults `N=1000`, `TYPE=float`,
+`BL=16`, `M=16`. `make print-bin-dir` prints the directory of the current
+configuration. To run a program directly, pinned to core 0:
 
 ```sh
 make
