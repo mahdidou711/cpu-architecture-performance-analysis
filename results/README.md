@@ -53,6 +53,7 @@ Sources of the per-dataset conditions:
 | `transposed_product.csv`, `transpose_amortization.csv` | 3, first discarded, two kept | none (two samples) | 30 |
 | `addition_order_ij_vs_ji.csv` | 51, first discarded | high outliers above Q3 + 3 IQR removed (if IQR > 0) | 30 |
 | `core_type_effects.csv`, `core_type_effects_frequency_estimates.csv` | 51, first discarded | high outliers above Q3 + 1.5 IQR removed (if IQR > 0) | 9 |
+| `aa_controls.csv` | 3, first discarded, two kept | none (two samples) | 30 |
 
 Every configuration was checked against the timer-cost criterion: the raw
 duration of a measured call is at least 100 times the cost of an empty timer
@@ -118,6 +119,7 @@ explanations are hypotheses compatible with the data, not demonstrated causes.
 | [`addition_order_ij_vs_ji.csv`](csv/addition_order_ij_vs_ji.csv) | 8 | `add_ij` vs `add_ji`, float and double, N = 256, 512, 1024, 1536, GCC `-O3` |
 | [`core_type_effects.csv`](csv/core_type_effects.csv) | 15 | `zero`, `ps`, `mm_ikj` (float, N=256, GCC `-O2`) on two performance cores, on one with a busy SMT sibling, and on two efficiency cores |
 | [`core_type_effects_frequency_estimates.csv`](csv/core_type_effects_frequency_estimates.csv) | 15 | **estimates** for the same 15 launches groups: software frequency estimate and cycles derived from it, not hardware cycle counts |
+| [`aa_controls.csv`](csv/aa_controls.csv) | 4 | A/A controls: the same compiled code run as two instances in the same rounds (`mm_ijk`, `mm_ikj`, `mm_b_ijk`, `ps`; float, N=1000, GCC `-O2`) |
 
 ### Column dictionary
 
@@ -155,6 +157,7 @@ launches, always 30), `BL` (block size).
 | `S1_ticks_per_unit`, `S2_ticks_per_unit` | TSC ticks per unit (N^2 elements for `zero` and `ps`, N^3 iterations for `mm_ikj`); S1 median of launch medians, S2 median of launch minima, 9 launches |
 | `between_launch_iqr_relative` | interquartile range of the launch medians divided by their median |
 | `estimated_frequency_mhz_median`, `estimated_cycles_per_unit` | **Estimates, not measurements.** The frequency comes from software probes taken before and after each launch; `estimated_cycles_per_unit` converts the time of each launch with it (median over launches). No hardware performance counter was available, so these are not core cycle counts. In the larger GCC campaign, 31.6 % of the launches have frequency estimates that differ by more than 100 MHz before and after the launch, so the correction is coarse. Use as a sensitivity indication, never as a principal quantity |
+| `median_of_paired_ratios_copy_over_original` | per-round ratio of the second instance to the first instance of identical code, median over 30 rounds; its deviation from 1 gives the scale of the noise of the method |
 
 ## Figures
 
