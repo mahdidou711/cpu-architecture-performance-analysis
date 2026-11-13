@@ -1,5 +1,5 @@
-/* Identité du processeur logique courant (à lancer sous taskset).
-   Sortie : une ligne JSON. Aucune écriture système ; CPUID et RDTSCP seulement. */
+/* Current logical-processor identity (run under taskset).
+   Output: one JSON line. No system writes; CPUID and RDTSCP only. */
 #define _GNU_SOURCE
 #include <sched.h>
 #include <stdio.h>

@@ -1,7 +1,7 @@
-/* Mise à l'échelle du coût d'instrumentation avec le harnais tsc.h.
-   Noyau : chaîne de L additions dépendantes (latence connue, aucun accès mémoire). La régression
-   ticks = a + b*L estime l'ordonnée à l'origine ; aucune soustraction n'est appliquée aux résultats.
-   Usage : overhead_probe SAMPLES  -> CSV : L,sample,ticks,aux_start,aux_stop */
+/* TSC instrumentation-overhead scaling with the tsc.h harness.
+   Kernel: a chain of L dependent additions (known latency, no memory access). The regression
+   ticks = a + b*L estimates the intercept; no subtraction is applied to the results.
+   Usage: overhead_probe SAMPLES -> CSV: L,sample,ticks,aux_start,aux_stop */
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,7 +10,7 @@
 
 #define ADD8 "add %[y], %[x]\n\t"
 static uint64_t chain_add(uint64_t x, uint64_t y, long iters)
-{ /* 8 adds dépendants par itération */
+{ /* 8 dependent adds per iteration */
   __asm__ volatile("1:\n\t" ADD8 ADD8 ADD8 ADD8 ADD8 ADD8 ADD8 ADD8 "dec %[n]\n\tjnz 1b"
                    : [x] "+r"(x), [n] "+r"(iters) : [y] "r"(y) : "cc");
   return x;

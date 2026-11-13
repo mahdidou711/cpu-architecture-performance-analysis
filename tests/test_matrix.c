@@ -36,6 +36,6 @@ int main(void)
       dot4(); if(fabsl(SF-dot)>2e-5L*(1+fabsl(dot))) return 7;
     }
   }
-  puts("PASS independent long-double matrix/dot oracles, repeated calls, transpose");
+  fprintf(stderr, "PASS independent long-double matrix/dot oracles, repeated calls, transpose\n");
   return 0;
 }

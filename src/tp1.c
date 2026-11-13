@@ -5,11 +5,11 @@
 #define N 1000 // la taille des matrices [N][N]/vecteurs[N^2]
 #endif
 #ifndef M
-#define M 16 // nombre d'it�rations de chaque fonction
+#define M 16 // nombre d'itérations de chaque fonction
 #endif
 #ifndef TYPE
 #define TYPE float // ou double ou int, etc. On peut essayer les
-                   // diff�rents types de donn�es
+                   // différents types de données
 #endif
 
 /* A C cast works for all supported TYPEs; the preprocessor cannot compare types. */
@@ -33,7 +33,7 @@
 #error "Require 1 <= N <= 46340, M > 0, 1 <= BL <= INT_MAX-N"
 #endif
 
-/* TSC ticks are not core clock cycles. */
+/* TSC ticks are not core clock cycles; see docs/METHODOLOGY.md. */
 #include "tsc.h"
 
 TYPE AF[N][N], YF[N][N], XF[N][N], YT[N][N], // matrices [N][N]
@@ -42,7 +42,7 @@ TYPE AF[N][N], YF[N][N], XF[N][N], YT[N][N], // matrices [N][N]
 
 unsigned aux_begin[M], aux_end[M];
 int valid_sample[M];
-double resultats[M]; // les temps de calcul en double
+double samples[M]; // les temps de calcul en double
 
 static inline int min(int a, int b)
 {
@@ -52,39 +52,39 @@ static inline int min(int a, int b)
     return b;
 }
 
-uint64_t debut;
-double benchtime;
+uint64_t t_start;
+double t_elapsed;
 
 // pour les calculs, on met les temps obtenu pour chaque essai dans un tableau.
-// Le contenu du tableau est ensuite affich� et/ou trait�.
+// Le contenu du tableau est ensuite affiché et/ou traité.
 void add_res(double res, int where)
 {
-  resultats[where] = res;
+  samples[where] = res;
   aux_begin[where] = tsc_aux_start;
   aux_end[where] = tsc_aux_stop;
   valid_sample[where] = tsc_aux_start == tsc_aux_stop && isfinite(res) && res >= 0;
 }
 
-// la fonction d'affichage des r�sutats. Peut �tre red�finie en fonction des besoins
+// la fonction d'affichage des résultats. Peut être redéfinie en fonction des besoins
 // pour faire des statistiques, enlever les point aberrants, etc
-// Le deuxi�me param�tre est le nombre d'it�rations pour normaliser
+// Le deuxième paramètre est le nombre d'itérations pour normaliser
 void print_res(const char *funcname, double nb_iter)
 {
   /* Raw samples are always retained, including invalid/migrated ones. */
   printf("function,sample,ticks,denominator,ticks_per_iteration,aux_start,aux_stop,valid\n");
   for (int i = 0; i < M; i++)
     printf("%s,%d,%.0f,%.0f,%.12g,%u,%u,%d\n", funcname, i,
-           resultats[i], nb_iter, resultats[i] / nb_iter,
+           samples[i], nb_iter, samples[i] / nb_iter,
            aux_begin[i], aux_end[i], valid_sample[i]);
 }
 
-// entre deux mesures d'un m�me programme. R�d�finir si n�cessaire
-void separateur(void)
+// entre deux mesures d'un même programme. Redéfinir si nécessaire
+void separator(void)
 {
   printf("\n");
 }
 
-// Mise � z�ro d'un vecteur
+// Mise à zéro d'un vecteur
 void zero(void)
 {
 
@@ -92,15 +92,15 @@ void zero(void)
 
   for (m = 0; m < M; m++)
   {
-    debut = start_timer();
+    t_start = start_timer();
 
     for (i = 0; i < (N * N); i++)
       BF[i] = ZERO;
-    benchtime = dtime(debut, stop_timer());
-    add_res(benchtime, m);
+    t_elapsed = dtime(t_start, stop_timer());
+    add_res(t_elapsed, m);
   }
   print_res("ZERO", (N * N));
-  separateur();
+  separator();
 }
 
 // copie de matrices
@@ -110,16 +110,16 @@ void copy_ij(void)
 
   for (m = 0; m < M; m++)
   {
-    debut = start_timer();
+    t_start = start_timer();
 
     for (i = 0; i < N; i++)
       for (j = 0; j < N; j++)
         AF[i][j] = YF[i][j];
-    benchtime = dtime(debut, stop_timer());
-    add_res(benchtime, m);
+    t_elapsed = dtime(t_start, stop_timer());
+    add_res(t_elapsed, m);
   }
   print_res("COPY_ij", (N * N));
-  separateur();
+  separator();
 }
 
 void copy_ji(void)
@@ -128,16 +128,16 @@ void copy_ji(void)
 
   for (m = 0; m < M; m++)
   {
-    debut = start_timer();
+    t_start = start_timer();
 
     for (j = 0; j < N; j++)
       for (i = 0; i < N; i++)
         AF[i][j] = YF[i][j];
-    benchtime = dtime(debut, stop_timer());
-    add_res(benchtime, m);
+    t_elapsed = dtime(t_start, stop_timer());
+    add_res(t_elapsed, m);
   }
   print_res("COPY_ji", (double)(N * N));
-  separateur();
+  separator();
 }
 
 // addition de deux matrices
@@ -147,16 +147,16 @@ void add_ij(void)
 
   for (m = 0; m < M; m++)
   {
-    debut = start_timer();
+    t_start = start_timer();
 
     for (i = 0; i < N; i++)
       for (j = 0; j < N; j++)
         AF[i][j] += YF[i][j];
-    benchtime = dtime(debut, stop_timer());
-    add_res(benchtime, m);
+    t_elapsed = dtime(t_start, stop_timer());
+    add_res(t_elapsed, m);
   }
   print_res("ADD_ij", (double)(N * N));
-  separateur();
+  separator();
 }
 
 void add_ji(void)
@@ -165,16 +165,16 @@ void add_ji(void)
 
   for (m = 0; m < M; m++)
   {
-    debut = start_timer();
+    t_start = start_timer();
 
     for (j = 0; j < N; j++)
       for (i = 0; i < N; i++)
         AF[i][j] += YF[i][j];
-    benchtime = dtime(debut, stop_timer());
-    add_res(benchtime, m);
+    t_elapsed = dtime(t_start, stop_timer());
+    add_res(t_elapsed, m);
   }
   print_res("ADD_ji", (double)(N * N));
-  separateur();
+  separator();
 }
 
 // Produit scalaire
@@ -184,18 +184,18 @@ void ps(void)
 
   for (m = 0; m < M; m++)
   {
-    debut = start_timer();
+    t_start = start_timer();
 
     SF = ZERO;
     for (i = 0; i < (N * N); i++)
     {
       SF += BF[i] * CF[i];
     }
-    benchtime = dtime(debut, stop_timer());
-    add_res(benchtime, m);
+    t_elapsed = dtime(t_start, stop_timer());
+    add_res(t_elapsed, m);
   }
   print_res("PS", (double)(N * N));
-  separateur();
+  separator();
 }
 
 // Multiplication de matrices ijk
@@ -205,7 +205,7 @@ void mm_ijk(void)
 
   for (m = 0; m < M; m++)
   {
-    debut = start_timer();
+    t_start = start_timer();
 
     for (i = 0; i < N; i++)
       for (j = 0; j < N; j++)
@@ -215,11 +215,11 @@ void mm_ijk(void)
           SF += AF[i][k] * XF[k][j];
         YF[i][j] = SF;
       }
-    benchtime = dtime(debut, stop_timer());
-    add_res(benchtime, m);
+    t_elapsed = dtime(t_start, stop_timer());
+    add_res(t_elapsed, m);
   }
   print_res("MM_ijk", ((double)N * N * N));
-  separateur();
+  separator();
 }
 
 // Multiplication de matrices ikj
@@ -228,7 +228,7 @@ void mm_ikj(void)
   int i, j, k, m;
   for (m = 0; m < M; m++)
   {
-    debut = start_timer();
+    t_start = start_timer();
     /* Each sample computes YF = AF * XF, independent of old output. */
     for (i = 0; i < N; i++)
       for (j = 0; j < N; j++)
@@ -241,11 +241,11 @@ void mm_ikj(void)
         for (j = 0; j < N; j++)
           YF[i][j] += SF * XF[k][j];
       }
-    benchtime = dtime(debut, stop_timer());
-    add_res(benchtime, m);
+    t_elapsed = dtime(t_start, stop_timer());
+    add_res(t_elapsed, m);
   }
   print_res("MM_ikj", ((double)N * N * N));
-  separateur();
+  separator();
 }
 
 // Multiplication de matrices par blocs
@@ -255,7 +255,7 @@ void mm_b_ijk(void)
 
   for (m = 0; m < M; m++)
   {
-    debut = start_timer();
+    t_start = start_timer();
     /* Each sample computes YF = AF * XF, independent of old output. */
     for (i = 0; i < N; i++)
       for (j = 0; j < N; j++)
@@ -275,12 +275,12 @@ void mm_b_ijk(void)
           }
         }
 
-    benchtime = dtime(debut, stop_timer());
-    add_res(benchtime, m);
+    t_elapsed = dtime(t_start, stop_timer());
+    add_res(t_elapsed, m);
   }
   print_res("MM_B_ijk", ((double)N * N * N));
 
-  separateur();
+  separator();
 }
 
 /* Deterministic, bounded inputs. Call before each independent procedure.

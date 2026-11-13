@@ -1,4 +1,4 @@
-/* Matrix harness: the received matrix kernels remain included unchanged. */
+/* Matrix benchmark harness: the teaching kernels are included unchanged. */
 #define TP1_NO_MAIN
 #include "tp1.c"
 

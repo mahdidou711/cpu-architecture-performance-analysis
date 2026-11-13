@@ -1,0 +1,25 @@
+# Build artefacts
+/build/
+*.o
+*.a
+*.so
+*.out
+*.obj
+*.exe
+
+# Editor and OS files
+*.swp
+*.swo
+*~
+.DS_Store
+.idea/
+.vscode/
+
+# Generated results
+/results/csv/*.csv
+/results/figures/*.png
+/results/figures/*.pdf
+
+# Temporary files
+*.tmp
+*.log
