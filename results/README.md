@@ -117,6 +117,7 @@ explanations are hypotheses compatible with the data, not demonstrated causes.
 | [`transpose_amortization.csv`](csv/transpose_amortization.csv) | 12 | estimated number of reuses of a transposed matrix needed to amortise the transposition, float and int, N = 256 and 1000, GCC `-O2` |
 | [`addition_order_ij_vs_ji.csv`](csv/addition_order_ij_vs_ji.csv) | 8 | `add_ij` vs `add_ji`, float and double, N = 256, 512, 1024, 1536, GCC `-O3` |
 | [`core_type_effects.csv`](csv/core_type_effects.csv) | 15 | `zero`, `ps`, `mm_ikj` (float, N=256, GCC `-O2`) on two performance cores, on one with a busy SMT sibling, and on two efficiency cores |
+| [`core_type_effects_frequency_estimates.csv`](csv/core_type_effects_frequency_estimates.csv) | 15 | **estimates** for the same 15 launches groups: software frequency estimate and cycles derived from it, not hardware cycle counts |
 
 ### Column dictionary
 
@@ -153,6 +154,7 @@ launches, always 30), `BL` (block size).
 | `condition`, `logical_cpu`, `core_type`, `sibling_thread_load` | `p0` (logical CPU 0) and `p2` (CPU 2): performance cores; `p2_sibbusy`: CPU 2 with its SMT sibling busy-waiting; `e4` (CPU 4) and `e8` (CPU 8): efficiency cores |
 | `S1_ticks_per_unit`, `S2_ticks_per_unit` | TSC ticks per unit (N^2 elements for `zero` and `ps`, N^3 iterations for `mm_ikj`); S1 median of launch medians, S2 median of launch minima, 9 launches |
 | `between_launch_iqr_relative` | interquartile range of the launch medians divided by their median |
+| `estimated_frequency_mhz_median`, `estimated_cycles_per_unit` | **Estimates, not measurements.** The frequency comes from software probes taken before and after each launch; `estimated_cycles_per_unit` converts the time of each launch with it (median over launches). No hardware performance counter was available, so these are not core cycle counts. In the larger GCC campaign, 31.6 % of the launches have frequency estimates that differ by more than 100 MHz before and after the launch, so the correction is coarse. Use as a sensitivity indication, never as a principal quantity |
 
 ## Figures
 
