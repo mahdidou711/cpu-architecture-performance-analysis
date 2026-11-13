@@ -1,4 +1,4 @@
-/* Include the real teaching functions; no duplicate implementation under test. */
+/* Include the real kernel functions; no duplicate implementation under test. */
 #ifndef TP1_SOURCE
 #define TP1_SOURCE "../src/tp1.c"
 #endif
