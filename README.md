@@ -59,11 +59,11 @@ is faster.
 | GCC `-O0` vs `-O2` | slower in all 16 configurations: ratio 3.2 to 17.5 |
 | GCC `-O1` vs `-O2` | slower in 13 of 16 (1.08 to 3.14), equivalent for one, inconclusive for two |
 | GCC `-O3` vs `-O2` | faster for `mm_ikj` (0.52 at N=128, 0.59 at N=256) and `add_ij` at N=256 (0.83); equivalent or inconclusive for the others |
-| Copy, column-wise (`ji`) vs row-wise (`ij`) | `ji` slower: median of paired ratios from 7.2 (float, N=256) to 21.2 (double, N=1024) |
+| Copy, column-wise (`ji`) vs row-wise (`ij`) | `ji` slower: median of paired ratios from 7.2 (float, N=256; descriptive only, the call is shorter than 100 times the timer cost) to 21.2 (double, N=1024) |
 | `mm_ijk` vs `mm_ikj`, N=1000 | `ikj` faster: **median of paired ratios 5.695** (95 % interval 5.552 to 5.862) |
 | Same, as a ratio of median durations | 5.651 (a different quantity: 1.3226 vs 0.2340 ticks per iteration, 0.530 s vs 0.094 s per product) |
 | `mm_ijk` vs `mm_ikj`, N=1024 | median of paired ratios 25.8 (24.5 to 26.8); `ijk` costs 6.23 ticks per iteration at N=1024 and 1.32 at N=1000 |
-| Block size, N=1000, vs `mm_ijk` | `BL=8` best (median of paired ratios 1.388, 1.365 to 1.446); `BL=32` 1.119 (1.088 to 1.138); `BL=1` 0.355; `BL=1000` 0.976, not significant |
+| Block size, N=1000, vs `mm_ijk` | `BL=8`, the smallest tested block size meeting the criterion in [`results/README.md`](results/README.md) (median of paired ratios 1.388, 1.365 to 1.446); `BL=32` 1.119 (1.088 to 1.138); `BL=1` 0.355; `BL=1000` 0.976, not significant |
 | `ps4` vs `ps`, float | gain 3.93 at N=256, 2.59 at N=512, 1.75 at N=1000 (1.38 to 2.00) |
 
 The median of paired ratios is the primary estimator of a gain; the ratio of
@@ -131,7 +131,7 @@ make test             # 66 functional checks, a few seconds
 make test-sanitize    # same checks with ASan and UBSan, separate build
 make check            # tests plus a smoke run of every program, about 15 s
 make bench            # quick tp1 run: N=32, BL=8, M=4
-make bench-full       # tp1 run: N=1000, BL=32, M=16 (about 20 s)
+make bench-full       # tp1 run: N=1000, BL=32, M=16 (duration depends on the hardware and conditions)
 make run N=256 M=5    # tp1 with chosen parameters (N, TYPE, BL, M)
 make clean
 ```

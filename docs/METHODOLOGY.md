@@ -212,7 +212,7 @@ make test            # 66 functional checks, a few seconds
 make test-sanitize   # the same checks with ASan and UBSan, built separately
 make check           # tests plus a smoke run of every program, about 15 s
 make bench           # quick tp1 run, N=32, BL=8, M=4
-make bench-full      # tp1 at N=1000, BL=32, M=16 (about 20 s)
+make bench-full      # tp1 at N=1000, BL=32, M=16 (duration depends on the hardware and conditions)
 ```
 
 `make check` runs the functional tests, the TSC probe, the overhead probe,
