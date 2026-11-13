@@ -1,8 +1,10 @@
-# Processor Performance Benchmarks
+# CPU Architecture and Performance Analysis
 
 C programs and measurements on how loop order, compiler options, blocking, and
 independent accumulators change the execution time of simple kernels on an
 x86-64 processor. Timing uses the Time Stamp Counter (`RDTSCP` with fences).
+
+*En bref.* Programmes C et mesures sur l'influence de l'ordre des boucles, des options d'optimisation de GCC, du découpage par blocs et des accumulateurs indépendants sur le temps d'exécution de noyaux simples, sur un processeur x86-64. Le temps est mesuré avec le compteur d'horodatage (TSC, `RDTSCP` avec barrières) ; l'unité est le tick TSC, pas le cycle du cœur. Les résultats sont des mesures relatives obtenues sur une seule machine ; leurs limites sont décrites plus bas. La documentation est rédigée en anglais.
 
 **Author:** Mehdi BOUAMA, Master 2 SETI (Systèmes Embarqués et Traitement de
 l'Information), Université Paris-Saclay, 2026. Course project in processor
