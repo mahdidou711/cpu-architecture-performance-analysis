@@ -1,109 +1,161 @@
 # Processor Performance Benchmarks
 #
-# Build, run, and test the C benchmark programs. The default build uses
-# N=1000, TYPE=float, BL=32 and M=16. The functional tests use smaller
-# dimensions (N=32 and N=33, BL=8) so that they can be rerun quickly.
+# Build, run, and test the C benchmark programs.
+#
+# Build products live in a directory whose name encodes the full build
+# configuration (compiler, flags, N, TYPE, BL, M). A change of any of these
+# values therefore selects a different set of binaries; stale executables
+# built with other parameters are never reused.
 #
 # Examples:
-#   make                 build all programs
-#   make test            run the functional tests
-#   make test-sanitize   run the functional tests with ASan/UBSan
-#   make check           run tests plus a short smoke benchmark
-#   make run             run a short benchmark
-#   make bench           run a quick benchmark (N=32)
-#   make bench-full      run the full benchmark (N=1000)
+#   make                 build all programs (N=1000, TYPE=float, BL=32, M=16)
+#   make test            run the functional tests (66 checks, a few seconds)
+#   make test-sanitize   run the same tests with ASan/UBSan (separate build)
+#   make check           tests + smoke run of every program (reduced sizes)
+#   make bench           quick benchmark of tp1 (N=32, BL=8, M=4)
+#   make bench-full      full benchmark of tp1 (N=1000, BL=32, M=16)
+#   make run N=256       run tp1 with chosen parameters
 #   make clean           remove build artefacts
 #   make help            show this help
 
-CC ?= gcc
+ifeq ($(origin CC),default)
+CC := gcc
+endif
 CFLAGS ?= -O2 -std=gnu11 -Wall -Wextra -Werror
 CPPFLAGS ?=
 LDFLAGS ?=
 LDLIBS ?= -lm
 
 BUILD_DIR ?= build
-BIN_DIR := $(BUILD_DIR)/bin
 
-# Default dimensions for the benchmark programs.
+# Dimensions of the benchmark programs (tp1, matrix_extras).
 N ?= 1000
 TYPE ?= float
 BL ?= 32
 M ?= 16
 
-# Dimensions for the functional tests.
-TEST_N ?= 32
-TEST_TYPE ?= float
+# Block size and repetitions of the functional tests. The matrix dimension
+# and the element type of each test binary are part of its name
+# (test_tp1_<type>_<N>).
 TEST_BL ?= 8
 TEST_M ?= 4
+
+# Reduced dimensions of the smoke run performed by `make check`.
+CHECK_N ?= 64
+CHECK_BL ?= 8
+CHECK_M ?= 4
 
 SRC := src
 TESTS := tests
 
-BINARIES := $(BIN_DIR)/tp1 $(BIN_DIR)/matrix_extras $(BIN_DIR)/latency \
-            $(BIN_DIR)/tsc_probe $(BIN_DIR)/overhead_probe $(BIN_DIR)/cpu_probe \
-            $(BIN_DIR)/test_tp1 $(BIN_DIR)/test_matrix
+# --- Build directories ------------------------------------------------------
+# The directory name carries a checksum of the whole configuration.
+cfg_id = $(shell printf '%s' '$(subst ','\'',$(1))' | cksum | cut -d' ' -f1)
 
-TEST_BINS := $(BIN_DIR)/test_tp1_float_32 $(BIN_DIR)/test_tp1_float_33 \
-             $(BIN_DIR)/test_tp1_int_32 $(BIN_DIR)/test_tp1_int_33 \
-             $(BIN_DIR)/test_tp1_double_32 $(BIN_DIR)/test_tp1_double_33 \
-             $(BIN_DIR)/test_matrix_float_32 $(BIN_DIR)/test_matrix_float_33 \
-             $(BIN_DIR)/test_matrix_int_32 $(BIN_DIR)/test_matrix_int_33 \
-             $(BIN_DIR)/test_matrix_double_32 $(BIN_DIR)/test_matrix_double_33
+TOOLCHAIN := $(CC)|$(CFLAGS)|$(CPPFLAGS)|$(LDFLAGS)|$(LDLIBS)
+PROG_CFG := $(TOOLCHAIN)|N=$(N)|TYPE=$(TYPE)|BL=$(BL)|M=$(M)
+TEST_CFG := $(TOOLCHAIN)|BL=$(TEST_BL)|M=$(TEST_M)
 
-.PHONY: all clean test test-sanitize check run bench bench-full help
+BIN_DIR := $(BUILD_DIR)/N$(N)_$(TYPE)_B$(BL)_M$(M)_$(call cfg_id,$(PROG_CFG))/bin
+TEST_DIR := $(BUILD_DIR)/tests_$(call cfg_id,$(TEST_CFG))/bin
 
-all: $(BINARIES)
+PROGRAMS := $(BIN_DIR)/tp1 $(BIN_DIR)/matrix_extras $(BIN_DIR)/latency \
+            $(BIN_DIR)/tsc_probe $(BIN_DIR)/overhead_probe $(BIN_DIR)/cpu_probe
 
-$(BIN_DIR):
-	mkdir -p $@
+TEST_BINS := $(TEST_DIR)/test_tp1_float_32 $(TEST_DIR)/test_tp1_float_33 \
+             $(TEST_DIR)/test_tp1_int_32 $(TEST_DIR)/test_tp1_int_33 \
+             $(TEST_DIR)/test_tp1_double_32 $(TEST_DIR)/test_tp1_double_33 \
+             $(TEST_DIR)/test_matrix_float_32 $(TEST_DIR)/test_matrix_float_33 \
+             $(TEST_DIR)/test_matrix_int_32 $(TEST_DIR)/test_matrix_int_33 \
+             $(TEST_DIR)/test_matrix_double_32 $(TEST_DIR)/test_matrix_double_33
 
-$(BIN_DIR)/tp1: $(SRC)/tp1.c $(SRC)/tsc.h | $(BIN_DIR)
+SAN_CFLAGS := -O1 -g -std=gnu11 -Wall -Wextra -Werror \
+              -fsanitize=address,undefined -fno-sanitize-recover=all \
+              -fno-omit-frame-pointer
+
+.PHONY: all clean test test-sanitize sanitize-run check check-run run bench \
+        bench-full print-bin-dir help
+
+all: $(PROGRAMS)
+
+# --- Programs ---------------------------------------------------------------
+$(BIN_DIR)/tp1: $(SRC)/tp1.c $(SRC)/tsc.h
+	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(CPPFLAGS) -DN=$(N) -DTYPE=$(TYPE) -DBL=$(BL) -DM=$(M) -o $@ $(SRC)/tp1.c $(LDFLAGS) $(LDLIBS)
 
-$(BIN_DIR)/matrix_extras: $(SRC)/matrix_extras.c $(SRC)/tp1.c $(SRC)/tsc.h | $(BIN_DIR)
+$(BIN_DIR)/matrix_extras: $(SRC)/matrix_extras.c $(SRC)/tp1.c $(SRC)/tsc.h
+	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(CPPFLAGS) -DN=$(N) -DTYPE=$(TYPE) -DBL=$(BL) -DM=$(M) -o $@ $(SRC)/matrix_extras.c $(LDFLAGS) $(LDLIBS)
 
-$(BIN_DIR)/latency: $(SRC)/latency.c $(SRC)/tsc.h | $(BIN_DIR)
+$(BIN_DIR)/latency: $(SRC)/latency.c $(SRC)/tsc.h
+	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $(SRC)/latency.c $(LDFLAGS) $(LDLIBS)
 
-$(BIN_DIR)/tsc_probe: $(SRC)/tsc_probe.c $(SRC)/tsc.h | $(BIN_DIR)
+$(BIN_DIR)/tsc_probe: $(SRC)/tsc_probe.c $(SRC)/tsc.h
+	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $(SRC)/tsc_probe.c $(LDFLAGS) $(LDLIBS)
 
-$(BIN_DIR)/overhead_probe: $(SRC)/overhead_probe.c $(SRC)/tsc.h | $(BIN_DIR)
+$(BIN_DIR)/overhead_probe: $(SRC)/overhead_probe.c $(SRC)/tsc.h
+	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $(SRC)/overhead_probe.c $(LDFLAGS) $(LDLIBS)
 
-$(BIN_DIR)/cpu_probe: $(SRC)/cpu_probe.c $(SRC)/tsc.h | $(BIN_DIR)
+$(BIN_DIR)/cpu_probe: $(SRC)/cpu_probe.c $(SRC)/tsc.h
+	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $(SRC)/cpu_probe.c $(LDFLAGS) $(LDLIBS)
 
-$(BIN_DIR)/test_tp1: $(TESTS)/test_tp1.c $(SRC)/tp1.c $(SRC)/tsc.h | $(BIN_DIR)
-	$(CC) $(CFLAGS) $(CPPFLAGS) -DN=$(TEST_N) -DTYPE=$(TEST_TYPE) -DBL=$(TEST_BL) -DM=$(TEST_M) -o $@ $(TESTS)/test_tp1.c $(LDFLAGS) $(LDLIBS)
+# --- Functional tests -------------------------------------------------------
+# The 12 variants are built by two pattern rules; the suffix encodes the type
+# and the matrix dimension.
+$(TEST_DIR)/test_tp1_%: $(TESTS)/test_tp1.c $(SRC)/tp1.c $(SRC)/tsc.h
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) $(CPPFLAGS) -DN=$(word 2,$(subst _, ,$*)) -DTYPE=$(word 1,$(subst _, ,$*)) -DBL=$(TEST_BL) -DM=$(TEST_M) -o $@ $(TESTS)/test_tp1.c $(LDFLAGS) $(LDLIBS)
 
-$(BIN_DIR)/test_matrix: $(TESTS)/test_matrix.c $(SRC)/matrix_extras.c $(SRC)/tp1.c $(SRC)/tsc.h | $(BIN_DIR)
-	$(CC) $(CFLAGS) $(CPPFLAGS) -DN=$(TEST_N) -DTYPE=$(TEST_TYPE) -DBL=$(TEST_BL) -DM=$(TEST_M) -o $@ $(TESTS)/test_matrix.c $(LDFLAGS) $(LDLIBS)
+$(TEST_DIR)/test_matrix_%: $(TESTS)/test_matrix.c $(SRC)/matrix_extras.c $(SRC)/tp1.c $(SRC)/tsc.h
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) $(CPPFLAGS) -DN=$(word 2,$(subst _, ,$*)) -DTYPE=$(word 1,$(subst _, ,$*)) -DBL=$(TEST_BL) -DM=$(TEST_M) -o $@ $(TESTS)/test_matrix.c $(LDFLAGS) $(LDLIBS)
 
-# The 12 variants are built by the same pattern rule; the suffix encodes the
-# type and the matrix dimension.
-$(BIN_DIR)/test_tp1_%: $(TESTS)/test_tp1.c $(SRC)/tp1.c $(SRC)/tsc.h | $(BIN_DIR)
-	$(CC) $(CFLAGS) $(CPPFLAGS) -DN=$(word 2,$(subst _, ,$*)) -DTYPE=$(word 1,$(subst _, ,$*)) -DBL=8 -DM=4 -o $@ $(TESTS)/test_tp1.c $(LDFLAGS) $(LDLIBS)
-
-$(BIN_DIR)/test_matrix_%: $(TESTS)/test_matrix.c $(SRC)/matrix_extras.c $(SRC)/tp1.c $(SRC)/tsc.h | $(BIN_DIR)
-	$(CC) $(CFLAGS) $(CPPFLAGS) -DN=$(word 2,$(subst _, ,$*)) -DTYPE=$(word 1,$(subst _, ,$*)) -DBL=8 -DM=4 -o $@ $(TESTS)/test_matrix.c $(LDFLAGS) $(LDLIBS)
+define run_tests
+set -e; \
+for type in float int double; do \
+  for n in 32 33; do \
+    echo "== test_tp1 type=$$type N=$$n =="; \
+    $(TEST_DIR)/test_tp1_$${type}_$${n} >/dev/null; \
+    echo "== test_matrix type=$$type N=$$n =="; \
+    $(TEST_DIR)/test_matrix_$${type}_$${n} >/dev/null; \
+  done; \
+done
+endef
 
 test: $(TEST_BINS)
-	@set -e; \
-	for type in float int double; do \
-	  for n in 32 33; do \
-	    echo "== test_tp1 type=$$type N=$$n =="; \
-	    $(BIN_DIR)/test_tp1_$${type}_$${n} >/dev/null; \
-	    echo "== test_matrix type=$$type N=$$n =="; \
-	    $(BIN_DIR)/test_matrix_$${type}_$${n} >/dev/null; \
-	  done; \
-	done
+	@$(run_tests)
 
+# Sanitizer tests are built in $(BUILD_DIR)/sanitize, never in the directory
+# of the ordinary tests. The recipe verifies that every executable really
+# links the ASan and UBSan runtimes, then runs it; with
+# -fno-sanitize-recover=all any UBSan report aborts the process (non-zero
+# exit status), and ASan errors abort by default.
 test-sanitize:
-	@$(MAKE) test CFLAGS="-O1 -g -std=gnu11 -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer"
+	@$(MAKE) --no-print-directory sanitize-run BUILD_DIR=$(BUILD_DIR)/sanitize CFLAGS="$(SAN_CFLAGS)"
 
+sanitize-run: $(TEST_BINS)
+	@set -e; \
+	for b in $(TEST_BINS); do \
+	  nm $$b | grep -q '__asan_init' || { echo "FAIL: $$b is not ASan-instrumented" >&2; exit 1; }; \
+	  nm $$b | grep -q '__ubsan_handle' || { echo "FAIL: $$b is not UBSan-instrumented" >&2; exit 1; }; \
+	done; \
+	echo "instrumentation verified (ASan + UBSan symbols) in $(words $(TEST_BINS)) test binaries"
+	@export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1; \
+	$(run_tests)
+
+# --- Smoke run of every program ---------------------------------------------
+# `check` runs the functional tests, then delegates to `check-run`, which
+# lists every executable it launches as a prerequisite. The matrix programs
+# use reduced dimensions so that the run stays short.
 check: test
+	@$(MAKE) --no-print-directory check-run N=$(CHECK_N) TYPE=float BL=$(CHECK_BL) M=$(CHECK_M)
+
+check-run: $(BIN_DIR)/tsc_probe $(BIN_DIR)/overhead_probe $(BIN_DIR)/cpu_probe \
+           $(BIN_DIR)/latency $(BIN_DIR)/matrix_extras
 	@echo "== tsc_probe =="
 	$(BIN_DIR)/tsc_probe
 	@echo "== overhead_probe =="
@@ -114,13 +166,17 @@ check: test
 	$(BIN_DIR)/latency int_add_1 2000
 	@echo "== latency float_add_1 =="
 	$(BIN_DIR)/latency float_add_1 2000
-	@echo "== matrix_extras smoke =="
+	@echo "== matrix_extras smoke (N=$(N) M=$(M) BL=$(BL)) =="
 	@set -e; \
 	for op in transpose trans_mul trans_total ps4 mm_ijk mm_ikj mm_b_ijk ps; do \
 	  echo "== matrix_extras $$op =="; \
 	  $(BIN_DIR)/matrix_extras $$op; \
 	done
 
+# --- Benchmarks -------------------------------------------------------------
+# `run` builds and executes tp1 with the current N, TYPE, BL and M. `bench`
+# and `bench-full` only select parameters and delegate to `run`, so the
+# executable always matches the announced configuration.
 run: $(BIN_DIR)/tp1
 	@set -e; \
 	for op in zero copy_ij copy_ji add_ij add_ji ps mm_ijk mm_ikj mm_b_ijk; do \
@@ -128,24 +184,28 @@ run: $(BIN_DIR)/tp1
 	  $(BIN_DIR)/tp1 $$op; \
 	done
 
-bench: $(BIN_DIR)/tp1
+bench:
 	@$(MAKE) --no-print-directory run N=32 TYPE=float BL=8 M=4
 
-bench-full: $(BIN_DIR)/tp1
+bench-full:
 	@$(MAKE) --no-print-directory run N=1000 TYPE=float BL=32 M=16
+
+print-bin-dir:
+	@echo $(BIN_DIR)
 
 clean:
 	rm -rf $(BUILD_DIR)
 
 help:
 	@echo "Processor Performance Benchmarks"
-	@echo "  make                 build all programs"
+	@echo "  make                 build all programs (N, TYPE, BL, M)"
 	@echo "  make test            run the functional tests"
-	@echo "  make test-sanitize   run the functional tests with ASan/UBSan"
-	@echo "  make check           run tests plus a short smoke benchmark"
-	@echo "  make run             run the default benchmark set"
-	@echo "  make bench           run a quick benchmark (N=32)"
-	@echo "  make bench-full      run the full benchmark (N=1000)"
+	@echo "  make test-sanitize   run the functional tests with ASan/UBSan (separate build)"
+	@echo "  make check           tests + smoke run of every program (reduced sizes)"
+	@echo "  make run             run tp1 with the current N, TYPE, BL, M"
+	@echo "  make bench           quick tp1 benchmark (N=32, BL=8, M=4)"
+	@echo "  make bench-full      full tp1 benchmark (N=1000, BL=32, M=16)"
+	@echo "  make print-bin-dir   print the directory of the current configuration"
 	@echo "  make clean           remove build artefacts"
 	@echo ""
-	@echo "Variables: N, TYPE, BL, M, TEST_N, TEST_TYPE, TEST_BL, TEST_M"
+	@echo "Variables: CC, CFLAGS, N, TYPE, BL, M, TEST_BL, TEST_M, CHECK_N, CHECK_BL, CHECK_M"
