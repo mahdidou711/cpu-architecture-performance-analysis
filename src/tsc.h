@@ -1,12 +1,12 @@
 #ifndef TP1_TSC_H
 #define TP1_TSC_H
-#include <stdint.h>
-#include <cpuid.h>
 #if !defined(__x86_64__) && !defined(__i386__)
 #error "This timer requires x86 with SSE2 and RDTSCP"
 #endif
+#include <stdint.h>
+#include <cpuid.h>
 
-/* Single-threaded teaching harness. AUX is an OS tag, not a portable CPU ID. */
+/* Single-threaded harness. AUX is an OS tag, not a portable CPU ID. */
 static unsigned tsc_aux_start, tsc_aux_stop;
 static inline int tsc_supported(void)
 {

@@ -14,10 +14,17 @@ int main(void)
     init_bench_inputs();
     if(pattern) for(int i=0;i<N;++i) for(int j=0;j<N;++j) {
       /* Dyadic fractions plus non-dyadic values test numerical tolerance. */
-      double scale=pattern==1?0.125:0.1;
+      /* Integer TYPEs truncate fractions, so they use integer scales instead
+         (a fractional scale would turn the data into all zeros). */
+      double scale=((TYPE)0.5==0) ? (pattern==1?1.0:2.0) : (pattern==1?0.125:0.1);
       AF[i][j]=(TYPE)(((i*17+j*11+3)%19-9)*scale);
       XF[i][j]=(TYPE)(((i*7+j*13+5)%17-8)*scale);
       BF[i*N+j]=AF[i][j]; CF[i*N+j]=XF[i][j];
+    }
+    { /* Guard against degenerate (all-zero) test data. */
+      int nzA=0,nzX=0;
+      for(int i=0;i<N;++i) for(int j=0;j<N;++j) { nzA+=AF[i][j]!=0; nzX+=XF[i][j]!=0; }
+      if(nzA==0||nzX==0) return 8;
     }
     for(int i=0;i<N;++i) for(int j=0;j<N;++j) {
       oracle[i][j]=0;

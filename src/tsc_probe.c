@@ -7,10 +7,10 @@
 static double seconds(struct timespec t) { return t.tv_sec + t.tv_nsec * 1e-9; }
 int main(void)
 {
-  if (!tsc_supported()) return 1;
+  if (!tsc_supported()) { fprintf(stderr, "RDTSCP/SSE2 unavailable\n"); return 1; }
   unsigned a, b, c, d;
-  __cpuid_count(0x1a, 0, a, b, c, d);
-  fprintf(stderr, "cpuid_1a_core_type=0x%x (Intel: 0x40 Core, 0x20 Atom)\n", a >> 24);
+  if (__get_cpuid_count(0x1a, 0, &a, &b, &c, &d))
+    fprintf(stderr, "cpuid_1a_core_type=0x%x (Intel: 0x40 Core, 0x20 Atom)\n", a >> 24);
   if (__get_cpuid_count(0x15, 0, &a, &b, &c, &d))
     fprintf(stderr, "cpuid_15 denominator=%u numerator=%u crystal_hz=%u tsc_hz=%.0f\n", a, b, c, a ? (double)c * b / a : 0);
   puts("function,sample,ticks,denominator,ticks_per_iteration,aux_start,aux_stop,valid");

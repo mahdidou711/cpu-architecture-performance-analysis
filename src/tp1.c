@@ -330,6 +330,14 @@ int main(int argc, char **argv)
     fprintf(stderr, "Input bound exceeds TYPE range for this operation\n");
     return EXIT_FAILURE;
   }
+  static const char *const ops[] = {"zero", "ps", "copy_ij", "copy_ji", "add_ij",
+      "add_ji", "mm_ijk", "mm_ikj", "mm_b_ijk"};
+  int known = 0;
+  for (unsigned i = 0; i < sizeof ops / sizeof ops[0]; i++) known |= !strcmp(op, ops[i]);
+  if (!known) { /* reject before printing any CSV header */
+    fprintf(stderr, "Unknown operation: %s\n", op);
+    return EXIT_FAILURE;
+  }
   init_inputs();
   printf("# N=%d M=%d BL=%d TYPE=" STR(TYPE) " unit=TSC_ticks op=%s\n", N, M, BL, op);
   if (!strcmp(op, "zero")) { zero(); print_checksum(BF, N * N); }

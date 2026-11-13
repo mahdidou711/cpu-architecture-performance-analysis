@@ -1,4 +1,4 @@
-/* Matrix benchmark harness: the teaching kernels are included unchanged. */
+/* Matrix benchmark harness: the kernels of tp1.c are included unchanged. */
 #define TP1_NO_MAIN
 #include "tp1.c"
 
@@ -37,7 +37,8 @@ void init_bench_inputs(void)
       YF[i][j] = (TYPE)77;
       YT[i][j] = (TYPE)99;
       BF[i*N+j] = (TYPE)((i*N+j)%7-3);
-      CF[i*N+j] = (TYPE)((3*(i*N+j)+1)%7-3);
+      /* 64-bit intermediate: 3*(i*N+j) exceeds INT_MAX for N >= 26755. */
+      CF[i*N+j] = (TYPE)((3LL*(i*N+j)+1)%7-3);
     }
 }
 /* Periodic oracle does no N^3 calculation and never reads YF/YT. */
@@ -67,8 +68,21 @@ int verify_bench(const char *op)
 #ifndef TP1_MATRIX_NO_MAIN
 int main(int argc, char **argv)
 {
-  if (argc != 2 || !tsc_supported() || sizeof(TYPE) != 4) return 2;
+  static const char *const ops[] = {"transpose", "trans_mul", "trans_total",
+      "ps4", "mm_ijk", "mm_ikj", "mm_b_ijk", "ps"};
+  if (argc != 2) {
+    fprintf(stderr, "usage: %s transpose|trans_mul|trans_total|ps4|mm_ijk|mm_ikj|mm_b_ijk|ps\n", argv[0]);
+    return 2;
+  }
   const char *op = argv[1];
+  int known = 0;
+  for (unsigned i = 0; i < sizeof ops / sizeof ops[0]; ++i) known |= !strcmp(op, ops[i]);
+  if (!known) { fprintf(stderr, "Unknown operation: %s\n", op); return 2; }
+  if (!tsc_supported()) { fprintf(stderr, "RDTSCP/SSE2 unavailable\n"); return 2; }
+  if (sizeof(TYPE) != 4) {
+    fprintf(stderr, "matrix_extras requires a 4-byte TYPE (float, int); got " STR(TYPE) "\n");
+    return 2;
+  }
   init_bench_inputs();
   printf("# N=%d M=%d BL=%d TYPE=" STR(TYPE) " op=%s\n",N,M,BL,op);
   printf("# empty=");

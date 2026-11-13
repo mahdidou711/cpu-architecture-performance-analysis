@@ -152,9 +152,17 @@ __attribute__((noinline)) static int int_divempty_4(long n)
 
 int main(int argc,char **argv)
 {
-  if(argc!=3 || !tsc_supported()) return 2;
-  long n=atol(argv[2]);
-  if(n<=0 || n>1000000) return 2;
+  if(argc!=3) {
+    fprintf(stderr,"usage: %s OPERATION LOOP_TRIPS   (e.g. int_add_1 2000; LOOP_TRIPS in 1..1000000)\n",argv[0]);
+    return 2;
+  }
+  if(!tsc_supported()) { fprintf(stderr,"RDTSCP/SSE2 unavailable\n"); return 2; }
+  char *end;
+  long n=strtol(argv[2],&end,10);
+  if(*argv[2]=='\0' || *end!='\0' || n<=0 || n>1000000) {
+    fprintf(stderr,"invalid LOOP_TRIPS '%s' (expected an integer in 1..1000000)\n",argv[2]);
+    return 2;
+  }
   int (*fn)(long)=NULL;
   if(!strcmp(argv[1],"int_add_1")) fn=int_add_1;
   if(!strcmp(argv[1],"int_add_4")) fn=int_add_4;
@@ -174,9 +182,11 @@ int main(int argc,char **argv)
   if(!strcmp(argv[1],"float_empty_4")) fn=float_empty_4;
   if(!strcmp(argv[1],"int_divempty_1")) fn=int_divempty_1;
   if(!strcmp(argv[1],"int_divempty_4")) fn=int_divempty_4;
-  if(!fn) return 2;
+  if(!fn) { fprintf(stderr,"Unknown operation: %s\n",argv[1]); return 2; }
   unsigned tag;
   uint64_t warm=read_timer(&tag);
+  /* Warm-up of 124800000 TSC ticks: about 50 ms on a 2.496 GHz TSC. The
+     duration is host-dependent because the unit is the TSC tick. */
   while(read_timer(&tag)-warm<124800000u) if(!fn(2000)) return 3;
   printf("# empty=");
   for(int i=0;i<101;++i) {

@@ -18,8 +18,15 @@ static uint64_t chain_add(uint64_t x, uint64_t y, long iters)
 static volatile uint64_t sink;
 int main(int argc, char **argv)
 {
-  if (argc < 2 || !tsc_supported()) return 2;
-  int samples = atoi(argv[1]);
+  if (argc < 2) { fprintf(stderr, "usage: %s SAMPLES   (SAMPLES >= 1)\n", argv[0]); return 2; }
+  if (!tsc_supported()) { fprintf(stderr, "RDTSCP/SSE2 unavailable\n"); return 2; }
+  char *end;
+  long parsed = strtol(argv[1], &end, 10);
+  if (*argv[1] == '\0' || *end != '\0' || parsed < 1 || parsed > 1000000) {
+    fprintf(stderr, "invalid SAMPLES '%s' (expected an integer in 1..1000000)\n", argv[1]);
+    return 2;
+  }
+  int samples = (int)parsed;
   static const long iters[] = {1, 4, 16, 64, 256, 1024, 4096, 16384, 65536, 262144};
   uint64_t x = 1;
   puts("adds,sample,ticks,aux_start,aux_stop");
