@@ -112,6 +112,7 @@ explanations are hypotheses compatible with the data, not demonstrated causes.
 | [`dot_product_ps_vs_ps4.csv`](csv/dot_product_ps_vs_ps4.csv) | 3 | `ps` (one accumulator) vs `ps4` (four accumulators), float, N = 256, 512, 1000, GCC `-O2` |
 | [`instruction_latency.csv`](csv/instruction_latency.csv) | 36 | x86 assembly chains: add, multiply, divide for integer and float, one dependent chain or four independent chains, plus empty-loop controls, 2000 and 20000 loop trips |
 | [`transposed_product.csv`](csv/transposed_product.csv) | 12 | `mm_ijk`, `mm_ikj`, `mm_b_ijk` against `trans_total` (transposition followed by the transposed product), float and int, N = 256 and 1000, GCC `-O2` |
+| [`transpose_amortization.csv`](csv/transpose_amortization.csv) | 12 | estimated number of reuses of a transposed matrix needed to amortise the transposition, float and int, N = 256 and 1000, GCC `-O2` |
 
 ### Column dictionary
 
@@ -142,6 +143,8 @@ launches, always 30), `BL` (block size).
 | `p10_ticks_per_operation`, `p90_ticks_per_operation` | 10th and 90th percentile of the 10 per-launch medians |
 | `min_duration_over_timer_cost`, `all_launches_long_enough` | smallest ratio over launches of the median call duration to the median cost of an empty timer pair; `true` if at least 100. Empty-loop controls at 2000 trips are shorter than that and are descriptive only |
 | `median_of_paired_ratios_kernel_over_trans_total` | per-round ratio of the duration of `kernel` to the duration of `trans_total` (one measured call: transposition then transposed product), median over the 30 rounds; above 1 means `kernel` is slower than `trans_total`; the interval columns are the bootstrap interval described above |
+| `transpose_ticks`, `transposed_product_ticks`, `reference_product_ticks` | S1 (as above) of the transposition, of the product with the transposed matrix, and of the kernel named in `kernel` |
+| `reuse_threshold`, `estimated_min_reuses` | model: reusing a transposed matrix r times costs T + rP, against rC with the reference kernel (T, P, C the three columns above). If C > P, the model predicts a benefit for r > T / (C - P), the threshold; `estimated_min_reuses` is its integer part plus one. `none` when C is not larger than P. This is an estimate from medians; no sequence of r products was measured, and identical machine states are assumed |
 
 ## Figures
 

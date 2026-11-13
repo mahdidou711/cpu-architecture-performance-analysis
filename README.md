@@ -90,6 +90,7 @@ These tables complement the results above. They come from the same measurement c
 
   ![Instruction chains](results/figures/instruction_latency.png)
 - [`transposed_product.csv`](results/csv/transposed_product.csv): the three product kernels against the total cost of transposing and multiplying (`trans_total`), N = 256 and 1000, float and int. A ratio above 1 means the kernel is slower. `mm_ikj` is faster than `trans_total` (0.218 for float, N=1000) and `mm_ijk` slower (1.25 for float and 10.3 for int, N=1000). The float and int results differ; no cause is established.
+- [`transpose_amortization.csv`](results/csv/transpose_amortization.csv): a simple model of the number of reuses needed to amortise one transposition. For `mm_ijk` and `mm_b_ijk` the threshold is below 0.1 in every row, so the model predicts a benefit from the first use; for `mm_ikj` there is no threshold, because the transposed product is not faster than `mm_ikj`. The values are estimated from medians.
 
 ## Timing methodology
 
