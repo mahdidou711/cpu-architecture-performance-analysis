@@ -2,21 +2,20 @@
 #include <stdint.h>
 
 #ifndef N
-#define N 1000 // la taille des matrices [N][N]/vecteurs[N^2]
+#define N 1000 // Matrix dimension and square root of the vector length.
 #endif
 #ifndef M
-#define M 16 // nombre d'itérations de chaque fonction
+#define M 16 // Number of samples per kernel.
 #endif
 #ifndef TYPE
-#define TYPE float // ou double ou int, etc. On peut essayer les
-                   // différents types de données
+#define TYPE float // Element type (for example, float, double, or int).
 #endif
 
 /* A C cast works for all supported TYPEs; the preprocessor cannot compare types. */
 #define ZERO ((TYPE)0)
 
 #ifndef BL
-#define BL 16 // La taille des blocs pour la mult de matrices par blocs
+#define BL 16 // Tile dimension for blocked matrix multiplication.
 #endif
 
 #define STR1(x) #x
@@ -36,13 +35,13 @@
 /* TSC ticks are not core clock cycles; see docs/METHODOLOGY.md. */
 #include "tsc.h"
 
-TYPE AF[N][N], YF[N][N], XF[N][N], YT[N][N], // matrices [N][N]
-    BF[N * N], CF[N * N],                    // vecteurs N^2
-    SF;                                      // accumulateur
+TYPE AF[N][N], YF[N][N], XF[N][N], YT[N][N], // N by N matrices
+    BF[N * N], CF[N * N],                    // Vectors of length N squared
+    SF;                                      // Accumulator
 
 unsigned aux_begin[M], aux_end[M];
 int valid_sample[M];
-double samples[M]; // les temps de calcul en double
+double samples[M]; // Elapsed TSC ticks for each sample.
 
 static inline int min(int a, int b)
 {
@@ -55,8 +54,7 @@ static inline int min(int a, int b)
 uint64_t t_start;
 double t_elapsed;
 
-// pour les calculs, on met les temps obtenu pour chaque essai dans un tableau.
-// Le contenu du tableau est ensuite affiché et/ou traité.
+// Record the duration and migration status for one sample.
 void add_res(double res, int where)
 {
   samples[where] = res;
@@ -65,9 +63,7 @@ void add_res(double res, int where)
   valid_sample[where] = tsc_aux_start == tsc_aux_stop && isfinite(res) && res >= 0;
 }
 
-// la fonction d'affichage des résultats. Peut être redéfinie en fonction des besoins
-// pour faire des statistiques, enlever les point aberrants, etc
-// Le deuxième paramètre est le nombre d'itérations pour normaliser
+// Write sample CSV and normalize ticks by the supplied iteration count.
 void print_res(const char *funcname, double nb_iter)
 {
   /* Raw samples are always retained, including invalid/migrated ones. */
@@ -78,13 +74,13 @@ void print_res(const char *funcname, double nb_iter)
            aux_begin[i], aux_end[i], valid_sample[i]);
 }
 
-// entre deux mesures d'un même programme. Redéfinir si nécessaire
+// Separate sample groups in the output.
 void separator(void)
 {
   printf("\n");
 }
 
-// Mise à zéro d'un vecteur
+// Vector zeroing
 void zero(void)
 {
 
@@ -103,7 +99,7 @@ void zero(void)
   separator();
 }
 
-// copie de matrices
+// Matrix copy
 void copy_ij(void)
 {
   int i, j, m;
@@ -140,7 +136,7 @@ void copy_ji(void)
   separator();
 }
 
-// addition de deux matrices
+// Matrix addition
 void add_ij(void)
 {
   int i, j, m;
@@ -177,8 +173,8 @@ void add_ji(void)
   separator();
 }
 
-// Produit scalaire
-void ps(void)
+// Dot product
+void dot_product(void)
 {
   int i, m;
 
@@ -198,7 +194,7 @@ void ps(void)
   separator();
 }
 
-// Multiplication de matrices ijk
+// Matrix multiplication in ijk order
 void mm_ijk(void)
 {
   int i, j, k, m;
@@ -222,7 +218,7 @@ void mm_ijk(void)
   separator();
 }
 
-// Multiplication de matrices ikj
+// Matrix multiplication in ikj order
 void mm_ikj(void)
 {
   int i, j, k, m;
@@ -248,7 +244,7 @@ void mm_ikj(void)
   separator();
 }
 
-// Multiplication de matrices par blocs
+// Blocked matrix multiplication
 void mm_b_ijk(void)
 {
   int i, j, k, m, jj, kk;
@@ -314,7 +310,7 @@ void print_matrix_checksum(TYPE data[N][N])
   printf("# checksum=%.18Lg\n", sum);
 }
 
-#ifndef TP1_NO_MAIN
+#ifndef BENCHMARK_NO_MAIN
 int main(int argc, char **argv)
 {
   if (!tsc_supported()) {
@@ -341,7 +337,7 @@ int main(int argc, char **argv)
   init_inputs();
   printf("# N=%d M=%d BL=%d TYPE=" STR(TYPE) " unit=TSC_ticks op=%s\n", N, M, BL, op);
   if (!strcmp(op, "zero")) { zero(); print_checksum(BF, N * N); }
-  else if (!strcmp(op, "ps")) { ps(); print_checksum(&SF, 1); }
+  else if (!strcmp(op, "ps")) { dot_product(); print_checksum(&SF, 1); }
   else if (!strcmp(op, "copy_ij")) { copy_ij(); print_matrix_checksum(AF); }
   else if (!strcmp(op, "copy_ji")) { copy_ji(); print_matrix_checksum(AF); }
   else if (!strcmp(op, "add_ij")) { add_ij(); print_matrix_checksum(AF); }

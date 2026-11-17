@@ -31,7 +31,7 @@ int main(int argc, char **argv)
   uint64_t x = 1;
   puts("adds,sample,ticks,aux_start,aux_stop");
   for (unsigned k = 0; k < sizeof iters / sizeof iters[0]; k++) {
-    for (int s = 0; s < 3; s++) x = chain_add(x, 3, iters[k]); /* échauffement hors mesure */
+    for (int s = 0; s < 3; s++) x = chain_add(x, 3, iters[k]); /* Warm-up outside the timed interval. */
     for (int s = 0; s < samples; s++) {
       uint64_t t0 = start_timer(); x = chain_add(x, 3, iters[k]); uint64_t t1 = stop_timer();
       printf("%ld,%d,%" PRIu64 ",%u,%u\n", iters[k] * 8, s, t1 - t0, tsc_aux_start, tsc_aux_stop);

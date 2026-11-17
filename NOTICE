@@ -1,0 +1,11 @@
+CPU Architecture and Performance Analysis
+
+The basic kernels in src/kernels.c were adapted from an existing C benchmark
+skeleton. The source files received with that skeleton contain no author,
+copyright, or license notice. The MIT license in this repository applies to
+the original project contributions. The inherited material has no separate
+license recorded here.
+
+The reference CSV files contain measurements from this project. The figures
+are rendered from those measurements with Matplotlib (PSF-based license).
+Matplotlib is installed as a dependency and is distributed separately.

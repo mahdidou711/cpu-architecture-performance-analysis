@@ -1,10 +1,10 @@
 /* Include the real kernel functions; no duplicate implementation under test. */
-#ifndef TP1_SOURCE
-#define TP1_SOURCE "../src/tp1.c"
+#ifndef BENCHMARK_SOURCE
+#define BENCHMARK_SOURCE "../src/kernels.c"
 #endif
-#define main tp1_demo_main
-#define TP1_NO_MAIN
-#include TP1_SOURCE
+#define main kernels_demo_main
+#define BENCHMARK_NO_MAIN
+#include BENCHMARK_SOURCE
 #undef main
 #include <float.h>
 #include <math.h>
@@ -63,7 +63,7 @@ static void matrix(void (*fn)(void), const char *label, int pattern)
 
 int main(void)
 {
-#ifndef TP1_BASELINE
+#ifndef BENCHMARK_BASELINE
   if (!tsc_supported()) return EXIT_FAILURE;
 #endif
   seed(0); zero();
@@ -78,8 +78,8 @@ int main(void)
   }
   seed(0); long double dot = 0, dot_abs = 0;
   for (int i = 0; i < N * N; i++) { long double product = (long double)BF[i] * CF[i]; dot += product; dot_abs += fabsl(product); }
-  ps(); check(SF, dot, dot_abs, N * N, "dot");
-  ps(); check(SF, dot, dot_abs, N * N, "dot repeated");
+  dot_product(); check(SF, dot, dot_abs, N * N, "dot");
+  dot_product(); check(SF, dot, dot_abs, N * N, "dot repeated");
   for (int p = 0; p < 3; p++) {
     matrix(mm_ijk, "mm_ijk", p); matrix(mm_ikj, "mm_ikj", p); matrix(mm_b_ijk, "mm_b_ijk", p);
   }

@@ -1,4 +1,4 @@
-#define TP1_MATRIX_NO_MAIN
+#define BENCHMARK_MATRIX_NO_MAIN
 #include "../src/matrix_extras.c"
 
 static long double oracle[N][N];
@@ -39,7 +39,7 @@ int main(void)
       transposed_product(); if(!check()) return 5;
       long double dot=0;
       for(int i=0;i<N*N;++i) dot+=(long double)BF[i]*CF[i];
-      ps(); if(fabsl(SF-dot)>2e-5L*(1+fabsl(dot))) return 6;
+      dot_product(); if(fabsl(SF-dot)>2e-5L*(1+fabsl(dot))) return 6;
       dot4(); if(fabsl(SF-dot)>2e-5L*(1+fabsl(dot))) return 7;
     }
   }

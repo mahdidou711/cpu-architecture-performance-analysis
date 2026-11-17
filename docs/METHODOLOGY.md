@@ -99,7 +99,7 @@ they are not all executable on a given host.
 ## 4. Repetitions and statistics
 
 The programs print the raw samples of each call and leave the summary to the
-reader. The default is `M=16` (the Makefile and `tp1.c`); the reference
+reader. The default is `M=16` (the Makefile and `kernels.c`); the reference
 campaigns used `M=51` for the small kernels and `M=3` for the large matrix
 multiplications, whose single call lasts up to several seconds. In every case
 the first sample is treated as warm-up. Do not stop a series at the first
@@ -130,7 +130,7 @@ itself is not distributed with this repository.
    per-launch minima, as a sensitivity check). Compare two configurations
    with the median of paired per-round ratios and a bootstrap interval; the
    ratio `S1(a) / S1(b)` is a different quantity and must be named as such
-   (see [`../results/README.md`](../results/README.md)).
+   (see [`../data/README.md`](../data/README.md)).
 
 The Tukey threshold is an operational convention, not a proof that an
 interruption caused each removed value. A high rejection rate or a strong
@@ -188,21 +188,21 @@ system-defined tag, not a portable identifier.
 | Environment sensors | none | package temperature and frequency state logged |
 | Summary | raw CSV only | `S1`, `S2`, paired ratios, bootstrap intervals |
 
-The reference values are therefore archived results. The repository does not
-claim that `make` regenerates them. A reader can obtain the same kind of
-data for their own machine with a shell loop (pinning to the core of their
+The [reference tables](../data/README.md) preserve the campaign summaries for
+figure reproduction. A reader can collect new measurements on their own
+machine with a shell loop (pinning to the core of their
 choice, here core 0):
 
 ```sh
 make N=256 M=5
 BIN=$(make N=256 M=5 print-bin-dir)
 mkdir -p results/local
-for round in $(seq 1 30); do taskset -c 0 "$BIN/tp1" mm_ikj; done > results/local/mm_ikj_30_launches.csv
+for round in $(seq 1 30); do taskset -c 0 "$BIN/kernels" mm_ikj; done > results/local/mm_ikj_30_launches.csv
 ```
 
 and summarise the 30 launches with the rules of section 4.
 
-## 8. Reproduction
+## 8. Build and test
 
 From the repository root:
 
@@ -210,9 +210,9 @@ From the repository root:
 make                 # build the programs (N=1000, TYPE=float, BL=32, M=16)
 make test            # 66 functional checks, a few seconds
 make test-sanitize   # the same checks with ASan and UBSan, built separately
-make check           # tests plus a smoke run of every program, about 15 s
-make bench           # quick tp1 run, N=32, BL=8, M=4
-make bench-full      # tp1 at N=1000, BL=32, M=16 (duration depends on the hardware and conditions)
+make check           # tests plus smoke runs of the timing probes and matrix harness
+make bench           # quick kernels run, N=32, BL=8, M=4
+make bench-full      # kernels at N=1000, BL=32, M=16 (duration depends on the hardware and conditions)
 ```
 
 `make check` runs the functional tests, the TSC probe, the overhead probe,

@@ -1,6 +1,6 @@
-/* Matrix benchmark harness: the kernels of tp1.c are included unchanged. */
-#define TP1_NO_MAIN
-#include "tp1.c"
+/* Matrix benchmark harness: the kernels of kernels.c are included unchanged. */
+#define BENCHMARK_NO_MAIN
+#include "kernels.c"
 
 __attribute__((noinline)) void transpose(void)
 {
@@ -65,7 +65,7 @@ int verify_bench(const char *op)
     }
   return 1;
 }
-#ifndef TP1_MATRIX_NO_MAIN
+#ifndef BENCHMARK_MATRIX_NO_MAIN
 int main(int argc, char **argv)
 {
   static const char *const ops[] = {"transpose", "trans_mul", "trans_total",
@@ -94,7 +94,7 @@ int main(int argc, char **argv)
   if (!strcmp(op,"mm_ijk")) mm_ijk();
   else if (!strcmp(op,"mm_ikj")) mm_ikj();
   else if (!strcmp(op,"mm_b_ijk")) mm_b_ijk();
-  else if (!strcmp(op,"ps")) ps();
+  else if (!strcmp(op,"ps")) dot_product();
   else {
     if (!strcmp(op,"trans_mul")) transpose();
     for (int m=0;m<M;++m) {

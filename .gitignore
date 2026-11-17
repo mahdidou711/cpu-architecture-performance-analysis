@@ -15,9 +15,12 @@
 .idea/
 .vscode/
 
-# Local experimental outputs (results/csv and results/figures hold the
-# versioned reference results and are NOT ignored)
-/results/local/
+# Local experimental outputs and Python caches
+/results/
+.venv/
+.mplconfig/
+__pycache__/
+.env
 
 # Temporary files
 *.tmp

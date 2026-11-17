@@ -1,5 +1,5 @@
-#ifndef TP1_TSC_H
-#define TP1_TSC_H
+#ifndef BENCHMARK_TSC_H
+#define BENCHMARK_TSC_H
 #if !defined(__x86_64__) && !defined(__i386__)
 #error "This timer requires x86 with SSE2 and RDTSCP"
 #endif
